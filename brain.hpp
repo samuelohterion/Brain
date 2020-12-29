@@ -36,7 +36,7 @@ class Brain {
 
 			public:
 
-				DSig(double const & p_min = -1., double const & p_max = 1.) :
+				DSig(double const & p_min = 0., double const & p_max = 1.) :
 				Sig(p_min, p_max) {
 
 				}
