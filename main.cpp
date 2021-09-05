@@ -10,8 +10,51 @@
 using namespace std;
 using namespace alg;
 
+VU get_all_unknown_patterns_ids(Brain & p_brain, MD const & p_pattern, MD const & p_teacher, D const & p_epsilon = .1) {
+
+	VU unknowns;
+	for(std::size_t i = 0; i < p_pattern.size(); ++ i) {
+
+		p_brain.remember(p_pattern[i]);
+
+		std::size_t j = 0;
+		while(j < p_teacher[0].size() && abs(p_brain.output(j) - p_teacher[i][j]) < p_epsilon) ++j;
+		if(j < p_teacher[0].size()) {
+			unknowns.push_back(i);
+		}
+	}
+	return unknowns;
+}
+
+template < typename T >
+std::ostream &
+operator<<(ostream & p_os, QueueSum< T > const & p_qs) {
+
+	for(auto i = p_qs.cbegin(); i != p_qs.cend(); ++ i) {
+
+		p_os << *i << (i == p_qs.end() ? "" : ", ");
+	}
+
+	return p_os;
+}
+
 int
 main( ) {
+
+//	QueueSum<>
+//	qs = QueueSum<>(5);
+
+//	std::cout << qs << std::endl << qs.sum() << std::endl;
+//	std::cout << qs.add(1) << std::endl << qs.sum() << std::endl;
+//	std::cout << qs.add(2) << std::endl << qs.sum() << std::endl;
+//	std::cout << qs.add(3) << std::endl << qs.sum() << std::endl;
+//	std::cout << qs.add(2) << std::endl << qs.sum() << std::endl;
+//	std::cout << qs.add(1) << std::endl << qs.sum() << std::endl;
+//	std::cout << qs.add(1) << std::endl << qs.sum() << std::endl;
+//	std::cout << qs.add(1) << std::endl << qs.sum() << std::endl;
+//	std::cout << qs.add(-1) << std::endl << qs.sum() << std::endl;
+//	std::cout << qs.add(-1) << std::endl << qs.sum() << std::endl;
+
 
 	// cout << "MLP\n---\n\n";
 /*
@@ -40,6 +83,7 @@ main( ) {
 		std::cout << brain.str( brain.input( ), 1 ) << " => " << brain.str( brain.output( ) ) << std::endl;
 	}
 	*/
+/*
 	MD
 	x_y = mcnst< D >(64, 6),        // 64 x (3 + 3) bits: y = y2 y1 y0   x = x2 x1 x0
 	x_times_y = mcnst< D >(64, 6);  // 64 x 6 bits as result of x * y
@@ -184,7 +228,7 @@ main( ) {
 
 	print("mlp_weights", mlp_weights);
 	print("brain_weights", brain_weights);
-
+*/
 
 /*
 	MLP
@@ -312,5 +356,146 @@ main( ) {
 		}
 	}
 */
+/*
+	MD
+	x_y = mcnst< D >(256, 8),        // 256 x (4 + 4) bits: y = y3 y2 y1 y0   x = x3 x2 x1 x0
+	x_plus_y = mcnst< D >(256, 5);  // 256 x 5 bits as result of x + y
+
+	for (UI y = 0; y < 16; ++ y) {
+
+		for (UI x = 0; x < 16; ++ x) {
+
+			UI
+			j = (y << 4) + x;
+
+			for (UI i = 0; i < 8; ++ i) {
+
+				x_y     [j][i] = (j         & (1ul << i)) == (1ul << i);
+			}
+			for (UI i = 0; i < 5; ++ i) {
+
+				x_plus_y[j][i] = ((y + x) & (1ul << i)) == (1ul << i);
+			}
+		}
+	}
+
+	print("x_y", ~ x_y);
+	print("x_plus_y", ~ x_plus_y);
+
+	Brain
+	adder({8, 11, 5}, .4, 0., 1., -1., +1., 3, 1000);
+
+	VU unknowns = get_all_unknown_patterns_ids(adder, x_y, x_plus_y);
+	std::random_shuffle(unknowns.begin(), unknowns.end());
+	std::size_t loop = 0;
+
+	D eta = adder.eta;
+
+	while(0 < unknowns.size() && ++ loop <= 100000) {
+
+		//adder.eta = eta * (exp10(-D(loop / 100000.)));
+
+		if(loop % 100 == 0) {
+
+			std::cout << "Loop: " << loop <<  " and still " << unknowns.size() <<  " unknown. [eta: " << adder.eta << "]" << std::endl;
+		}
+
+		for(std::size_t i = 0; i < unknowns.size(); ++ i) {
+
+			std::size_t j = unknowns[i];
+			adder.remember(x_y[j]);
+			adder.teach(x_plus_y[j]);
+		}
+
+		unknowns = get_all_unknown_patterns_ids(adder, x_y, x_plus_y);
+		std::random_shuffle(unknowns.begin(), unknowns.end());
+	}
+
+	std::cout << "Finished. All patterns learned in " << loop << " loops." << std::endl;
+*/
+	D
+	xmin = 0.,
+	xmax = 1.,
+	epsilon = .1;
+
+	UI
+	cbits = 10;
+
+	Brain
+	ramp({cbits, 1, cbits}, .8, 0., +1., -.1, +.1, 1, 10000);
+
+	MD
+	pattern = mcnst(1000, cbits, 0.),
+	teacher = mcnst(1000, cbits, 0.);
+
+	D
+	dx1 = 1. / (pattern.size() - 1),
+	dx2 = (cbits - 1.) * dx1;
+
+	for(UI i = 0; i < pattern.size(); ++ i) {
+
+		D
+		x = dx2 * i;
+
+		for(UI j = 0; j < cbits; ++ j) {
+
+			pattern[i][j] = exp(- (x - j) * (x - j) / 1.);
+		}
+
+		teacher[i] = pattern[i];
+	}
+
+	VU unknowns = get_all_unknown_patterns_ids(ramp, pattern, teacher, epsilon);
+	std::random_shuffle(unknowns.begin(), unknowns.end());
+
+	UI
+	loop = 0;
+	while(0 < unknowns.size() && ++ loop <= 10000000) {
+
+		//adder.eta = eta * (exp10(-D(loop / 100000.)));
+
+		if(loop % 100 == 0) {
+
+			std::cout << "Loop: " << loop <<  " and still " << unknowns.size() <<  " unknown. [eta: " << ramp.eta << "]" << std::endl;
+		}
+
+		for(std::size_t i = 0; i < unknowns.size(); ++ i) {
+
+			std::size_t j = unknowns[i];
+			ramp.remember(pattern[j]);
+			ramp.teach(teacher[j]);
+		}
+
+		unknowns = get_all_unknown_patterns_ids(ramp, pattern, teacher, epsilon);
+		std::random_shuffle(unknowns.begin(), unknowns.end());
+	}
+	std::cout << "Finished. All patterns learned in " << loop << " loops." << std::endl;
+
+	print("ramp weights:", ramp.w);
+//	D
+//	err = 10.;
+//	while (.001 < err && loop < 10000) {
+
+//		UI
+//		i = pattern.size() *rand() / RAND_MAX;
+
+//		VD
+//		x = pattern[i],
+//		y = teacher[i];
+//		ramp.remember(y);
+//		VD
+//		o = ramp.output();
+//		ramp.teach(teacher[i]);
+//		if(++ loop % 1000 == 0) {
+//			get_all_unknown_patterns_ids(ramp, pattern, teacher);
+//			print("loop: ", loop);
+//			print("x: ", x);
+//			print("y: ", y);
+//			print("o: ", round(o));
+//			print("Error: ", round(ramp.error(y), 5));
+//			print("RMS: ", round(ramp.rms(), 5));
+//		}
+//	}
+
 	return 0;
 }

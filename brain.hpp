@@ -7,6 +7,51 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include <deque>
+#include <numeric>
+#include "../AlgebraWithSTL/algebra.hpp"
+
+
+template< typename T = int >
+class QueueSum : public std::deque< T > {
+
+	private:
+
+		T
+		__sum;
+
+	public:
+
+		QueueSum(std::size_t const & p_size) :
+		std::deque< T >(p_size),
+		__sum(0) {
+
+		}
+
+		QueueSum< T > &
+		add(T const & p_value) {
+
+			__sum -= this->back();
+			this->pop_back();
+			this->push_front(p_value);
+			__sum += p_value;
+
+			return * this;
+		}
+
+		T
+		sum() const {
+
+			return __sum;
+		}
+
+		T
+		mean() const {
+
+			return __sum / this->size();
+		}
+};
+
 
 class Brain {
 
@@ -43,21 +88,26 @@ class Brain {
 
 				double operator()(double const & p_act) const {
 
-					return (mx - p_act) * (p_act - mn) / (mx - mn);
-					//return .0001 + (mx - p_act) * (p_act - mn) / (mx - mn);
+					//return (mx - p_act) * (p_act - mn) / (mx - mn);
+					return .001 + (mx - p_act) * (p_act - mn) / (mx - mn);
 				}
 			};
 
 	public:
 
-		std::vector< std::size_t > const
+		std::vector< std::size_t >
 		layer_sizes;
 
 		Sig const  act;
 		DSig const dact;
 
 		double
-		eta;
+		eta0,
+		eta,
+		eta_halftime,
+		delta_eta,
+		weights_min,
+		weights_max;
 
 		std::vector< std::vector< double > >
 		o, //utput
@@ -70,7 +120,9 @@ class Brain {
 		m;
 
 		std::size_t
-		outer_loop, inner_loop;
+		outer_loop,
+		inner_loop,
+		step;
 
 		std::size_t
 		save_weights_every_n_loops;
@@ -78,22 +130,26 @@ class Brain {
 	public:
 
 		Brain( std::initializer_list< std::size_t > const & p_layer_sizes,
-				double p_eta = .5,
-				double const &  p_activation_min = 0., double const & p_activation_max = 1.,
-				double const &  p_weights_min = -1., double const & p_weights_max = 1.,
+				double const & p_eta = .5, double const & p_eta_halftime = 1000, double const & p_delta_eta = .8,
+				double const & p_activation_min = 0., double const & p_activation_max = 1.,
+				double const & p_weights_min = -1., double const & p_weights_max = 1.,
 				std::size_t const & p_seed = time(nullptr),
 				std::size_t const & p_save_weights_every_n_loops = 0 ) :
 		layer_sizes( p_layer_sizes.begin( ), p_layer_sizes.end( ) ),
 		act(  p_activation_min, p_activation_max ),
 		dact( p_activation_min, p_activation_max ),
-		eta( p_eta ),
+		eta0( p_eta ),
+		eta_halftime( p_eta_halftime ),
+		delta_eta(p_delta_eta),
+		weights_min( p_weights_min),
+		weights_max( p_weights_max),
 		save_weights_every_n_loops( p_save_weights_every_n_loops ) {
 
 			configure( p_weights_min, p_weights_max, p_seed );
 		}
 
 		Brain( std::vector< std::size_t > const & p_layerSizes,
-				double p_eta = .5,
+				double const & p_eta = .5, double const & p_eta_halftime = 1000, double const & p_delta_eta = .8,
 				double const &  p_activation_min = 0., double const & p_activation_max = 1.,
 				double const &  p_weights_min = -1., double const & p_weights_max = 1.,
 				std::size_t const & p_seed = time(nullptr),
@@ -101,10 +157,46 @@ class Brain {
 		layer_sizes( p_layerSizes.begin( ), p_layerSizes.end( ) ),
 		act(  p_activation_min, p_activation_max ),
 		dact( p_activation_min, p_activation_max ),
-		eta( p_eta ),
+		eta0( p_eta ),
+		eta_halftime( p_eta_halftime ),
+		delta_eta(p_delta_eta),
+		weights_min( p_weights_min),
+		weights_max( p_weights_max),
 		save_weights_every_n_loops( p_save_weights_every_n_loops ) {
 
 			configure( p_weights_min, p_weights_max, p_seed );
+		}
+
+		Brain
+		& fromFileInputStream(std::ifstream & p_ifs) {
+
+			alg::load(p_ifs, w);
+
+			layer_sizes.resize(w.size() + 1);
+
+			layer_sizes[0] = w[0][0].size() - 1;
+
+			for(std::size_t i = 0; i < w.size(); ++ i) {
+
+				layer_sizes[i + 1] = w[i].size();
+			}
+
+			o.resize(0);
+			d.resize(0);
+
+			for( std::size_t i = 0; i < layer_sizes.size( ) - 1; ++ i ) {
+
+				o.push_back( std::vector< double >( layer_sizes[ i ] + 1, 1. ) );
+			}
+
+			o.push_back( std::vector< double >( layer_sizes[ layer_sizes.size() - 1 ], 0. ) );
+
+			for( std::size_t i = 1; i < layer_sizes.size( ); ++ i ) {
+
+				d.push_back( std::vector< double >( layer_sizes[ i ] ) );
+			}
+
+			return *this;
 		}
 
 		static std::vector< double >
@@ -148,26 +240,29 @@ class Brain {
 		analogize( std::vector< double > p_bits, double const & p_x0, double const & p_x1 ) {
 
 			double
-			ret = 0.,
-			sum = .5;
+			sum = 0.,
+			part = .5;
 
 			std::size_t
 			i = p_bits.size( );
 
 			while ( 0 < i ) {
 
-				ret +=
+				sum +=
 					.5 < p_bits[ -- i ]
-						? sum
+						? part
 						: 0.;
-				sum *= .5;
+				part *= .5;
 			}
 
-			return p_x0 + ( p_x1 - p_x0 ) * ret;
+			return p_x0 + ( p_x1 - p_x0 ) * sum;
 		}
 
-		void
-		configure( double const &  p_weights_min = 0., double const & p_weights_max = 1., std::size_t const & p_seed = std::time(nullptr) ) {
+		Brain
+		& configure( double const &  p_weights_min = 0., double const & p_weights_max = 1., std::size_t const & p_seed = std::time(nullptr) ) {
+
+			weights_min = p_weights_min;
+			weights_max = p_weights_max;
 
 			for( std::size_t i = 0; i < layer_sizes.size( ) - 1; ++ i ) {
 
@@ -190,7 +285,9 @@ class Brain {
 				w.push_back( std::vector< std::vector< double > >( realNumberOfNeuoronsInLayer, std::vector< double >( realNumberOfNeuoronsInPrevLayer ) ) );
 			}
 
-			randomizeWeights( p_weights_min, p_weights_max, p_seed );
+			randomizeWeights( p_seed );
+
+			return *this;
 		}
 
 		double
@@ -437,7 +534,7 @@ class Brain {
 		}
 
 		void
-		randomizeWeights( double const &  p_weights_min = 0., double const & p_weights_max = 1., std::size_t const & p_seed = time( nullptr ) ) {
+		randomizeWeights( std::size_t const & p_seed = time( nullptr ) ) {
 
 			srand( p_seed );
 
@@ -447,11 +544,13 @@ class Brain {
 
 					for( auto & val : vec )
 
-						val = p_weights_min + ( p_weights_max - p_weights_min ) * std::rand( ) / RAND_MAX;
+						val = weights_min + ( weights_max - weights_min ) * std::rand( ) / RAND_MAX;
 
 			outer_loop = 0;
 
 			inner_loop = 0;
+
+			step = 0;
 
 			m = { w };
 		}
@@ -514,6 +613,11 @@ class Brain {
 				}
 			}
 
+/*
+			e(t2) = e(t0) * 2 ^ (-t/t0)
+*/
+			eta = eta0 * pow(.5, step / eta_halftime);
+
 			double
 			e = eta;
 
@@ -527,18 +631,19 @@ class Brain {
 					}
 				}
 
-				//e *= .9;
+				e *= delta_eta;
 			}
 
-			++ outer_loop;
-			++ inner_loop;
-
-			if( ++ inner_loop == save_weights_every_n_loops ) {
+			if( save_weights_every_n_loops && save_weights_every_n_loops < ++ inner_loop ) {
 
 				inner_loop = 0;
 
+				++ outer_loop;
+
 				m.push_back( w );
 			}
+
+			++ step;
 		}
 };
 
