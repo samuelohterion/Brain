@@ -61,19 +61,26 @@ class Brain {
 
 			protected:
 
-				double mn, mx;
+                double
+                mn,
+                mx,
+                dst,
+                dstRec;
 
 			public:
 
 				Sig(double const & p_min = 0, double const & p_max = 1.) :
 				mn(p_min),
-				mx(p_max) {
+                mx(p_max),
+                dst(mx - mn),
+                dstRec(1. / dst) {
 
 				}
 
-				double operator()(double const & p_net) const {
+                double
+                operator()(double const & p_net) const {
 
-					return mn + (mx - mn) / (1. + exp(-p_net));
+                    return mn + dst / (1. + exp(-p_net));
 				}
 		};
 
@@ -82,14 +89,15 @@ class Brain {
 			public:
 
 				DSig(double const & p_min = 0., double const & p_max = 1.) :
-				Sig(p_min, p_max) {
+                Sig(p_min, p_max) {
 
 				}
 
-				double operator()(double const & p_act) const {
+                double
+                operator()(double const & p_act) const {
 
 					//return (mx - p_act) * (p_act - mn) / (mx - mn);
-					return .001 + (mx - p_act) * (p_act - mn) / (mx - mn);
+                    return .001 + (mx - p_act) * (p_act - mn) * dstRec;
 				}
 			};
 
@@ -616,8 +624,9 @@ class Brain {
 /*
 			e(t2) = e(t0) * 2 ^ (-t/t0)
 */
-			eta = eta0 * pow(.5, step / eta_halftime);
-
+            //std::cout << -double(step) / eta_halftime << std::endl;
+            eta = eta0 * pow(2., -double(step) / eta_halftime);
+//            eta = eta0;
 			double
 			e = eta;
 
@@ -631,7 +640,7 @@ class Brain {
 					}
 				}
 
-				e *= delta_eta;
+                e *= delta_eta;
 			}
 
 			if( save_weights_every_n_loops && save_weights_every_n_loops < ++ inner_loop ) {

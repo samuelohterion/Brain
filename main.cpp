@@ -229,7 +229,6 @@ main( ) {
 	print("mlp_weights", mlp_weights);
 	print("brain_weights", brain_weights);
 */
-
 /*
 	MLP
 	ramp( { 2, 3, 1 }, .1, -2, +2 );
@@ -322,9 +321,8 @@ main( ) {
 	save( "ramp2.txt", rampMem );
 */
 /*
-
 	Brain
-	m( { 1, 16, 8, 2 }, .1, -1, 1 );
+    m( { 1, 16, 8, 2 }, .01, -1, 1 );
 
 	std::vector< double >
 	x( 1 ),
@@ -332,7 +330,7 @@ main( ) {
 
 	for( std::size_t k = 0; k < 10; ++ k ) {
 
-		for( std::size_t i = 0; i <= 10000000; ++ i ) {
+        for( std::size_t i = 0; i <= 1000000; ++ i ) {
 
 			x[ 0 ] = 2. * rand( ) / RAND_MAX - 1.;
 
@@ -413,24 +411,60 @@ main( ) {
 
 	std::cout << "Finished. All patterns learned in " << loop << " loops." << std::endl;
 */
-	D
+/*
+    MD
+    x_y    = {{0,0}, {0,1}, {1,0}, {1,1}},
+    x_op_y = {{0,0,1,0},   {1,0,0,0},   {1,0,0,0},   {0,1,1,1}};
+
+    print("x_y", ~ x_y);
+    print("x_op_y", ~ x_op_y);
+
+    Brain
+    xorer({2, 5, 5, 4}, .25, 10000., .99,  0., 1., -1., +1., 13, 0);
+
+    VU unknowns = get_all_unknown_patterns_ids(xorer, x_y, x_op_y);
+    std::random_shuffle(unknowns.begin(), unknowns.end());
+    std::size_t loop = 0;
+
+    while(0 < unknowns.size() && ++ loop <= 1000000) {
+
+        if(loop % 100 == 0) {
+
+            std::cout << "Loop: " << loop <<  " and still " << unknowns.size() <<  " unknown. [eta: " << xorer.eta << "]" << std::endl;
+        }
+
+        for(std::size_t i = 0; i < unknowns.size(); ++ i) {
+
+            std::size_t j = unknowns[i];
+
+            xorer.remember(x_y[j]);
+            xorer.teach(x_op_y[j]);
+        }
+
+        unknowns = get_all_unknown_patterns_ids(xorer, x_y, x_op_y);
+        std::random_shuffle(unknowns.begin(), unknowns.end());
+    }
+
+    std::cout << "Finished. All patterns learned in " << loop << " loops." << std::endl;
+*/
+    D
 	xmin = 0.,
 	xmax = 1.,
-	epsilon = .1;
+    epsilon = .1;
 
 	UI
-	cbits = 10;
+    cbits = 23;
 
 	Brain
-	ramp({cbits, 1, cbits}, .8, 0., +1., -.1, +.1, 1, 10000);
+    ramp({cbits, 5, cbits}, 0.25, 1e7, .5, 0, 1, 0, 1, 1, 2);
 
 	MD
-	pattern = mcnst(1000, cbits, 0.),
-	teacher = mcnst(1000, cbits, 0.);
+    pattern = mcnst(1000, cbits, 0.),
+    teacher = mcnst(1000, cbits, 0.);
 
 	D
 	dx1 = 1. / (pattern.size() - 1),
-	dx2 = (cbits - 1.) * dx1;
+	dx2 = (cbits - 1) * dx1;
 
 	for(UI i = 0; i < pattern.size(); ++ i) {
 
@@ -454,9 +488,9 @@ main( ) {
 
 		//adder.eta = eta * (exp10(-D(loop / 100000.)));
 
-		if(loop % 100 == 0) {
+        if(loop % 10 == 0) {
 
-			std::cout << "Loop: " << loop <<  " and still " << unknowns.size() <<  " unknown. [eta: " << ramp.eta << "]" << std::endl;
+            std::cout << "Loop: " << loop <<  " and still " << unknowns.size() <<  " unknown. [eta: " << ramp.eta << "] [step: " << ramp.step << "] [rms: " << ramp.rms() << "]" << std::endl;
 		}
 
 		for(std::size_t i = 0; i < unknowns.size(); ++ i) {
@@ -471,7 +505,8 @@ main( ) {
 	}
 	std::cout << "Finished. All patterns learned in " << loop << " loops." << std::endl;
 
-	print("ramp weights:", ramp.w);
+    print("ramp weights:", ramp.w);
+    // print("ramp history:", ramp.m);
 //	D
 //	err = 10.;
 //	while (.001 < err && loop < 10000) {
