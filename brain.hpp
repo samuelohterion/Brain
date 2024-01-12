@@ -10,6 +10,7 @@
 #include <deque>
 #include <numeric>
 #include "../AlgebraWithSTL/algebra.hpp"
+//#include "algebra.hpp" // for buildBrain.m
 
 
 template< typename T = int >
@@ -425,10 +426,58 @@ class Brain {
 			return m;
 		}
 
+		void
+        saveHistory(std::string const & p_filename) const {
+
+			alg::save(p_filename, m);
+		}
+
+		bool
+        loadHistory(std::string const & p_filename) {
+
+			return alg::load(p_filename, m);
+		}
+
+		void
+        saveWeights(std::string const & p_filename) const {
+
+			alg::save(p_filename, w);
+		}
+
+		bool
+        loadWeights(std::string const & p_filename) {
+
+			return alg::load(p_filename, w);
+		}
+
 		std::vector< std::vector< std::vector< double > > > const
 		& history( std::size_t const & p_id ) const {
 
 			return m[ p_id ];
+		}
+
+		std::vector< std::vector< double > > const
+		& history( std::size_t const & p_id, std::size_t const & p_layer ) const {
+
+			return m[ p_id ][ p_layer ];
+		}
+
+		std::vector< double > const
+		& history( std::size_t const & p_id, std::size_t const & p_layer, std::size_t const & p_row ) const {
+
+			return m[ p_id ][ p_layer ][ p_row ];
+		}
+
+		std::vector< std::vector< double > > const
+		& weights( std::size_t const & p_layer ) const {
+
+			return w[ p_layer ];
+		}
+
+		std::vector< double > const
+		& weights( std::size_t const & p_layer, std::size_t const & p_row ) const {
+
+			return w[ p_layer ][ p_row ];
 		}
 
 		std::vector< double > const

@@ -2,12 +2,14 @@
 #include <initializer_list>
 #include <iomanip>
 #include <iostream>
+#include <ostream>
 #include <sstream>
 #include <vector>
 #include "brain.hpp"
 #include "../AlgebraWithSTL/mlp.hpp"
+#include "random"
 
-using namespace std;
+//using namespace std;
 using namespace alg;
 
 VU get_all_unknown_patterns_ids(Brain & p_brain, MD const & p_pattern, MD const & p_teacher, D const & p_epsilon = .1) {
@@ -26,9 +28,19 @@ VU get_all_unknown_patterns_ids(Brain & p_brain, MD const & p_pattern, MD const 
 	return unknowns;
 }
 
+VU
+random_shuffle(VU & p_vec) {
+	
+	std::random_device rd;
+	std::mt19937 g(rd());	
+
+	std::shuffle(p_vec.begin(), p_vec.end(), g);
+	return p_vec;
+}
+
 template < typename T >
 std::ostream &
-operator<<(ostream & p_os, QueueSum< T > const & p_qs) {
+operator<<(std::ostream & p_os, QueueSum< T > const & p_qs) {
 
 	for(auto i = p_qs.cbegin(); i != p_qs.cend(); ++ i) {
 
@@ -480,7 +492,7 @@ main( ) {
 	}
 
 	VU unknowns = get_all_unknown_patterns_ids(ramp, pattern, teacher, epsilon);
-	std::random_shuffle(unknowns.begin(), unknowns.end());
+	random_shuffle(unknowns);
 
 	UI
 	loop = 0;
@@ -501,7 +513,7 @@ main( ) {
 		}
 
 		unknowns = get_all_unknown_patterns_ids(ramp, pattern, teacher, epsilon);
-		std::random_shuffle(unknowns.begin(), unknowns.end());
+		random_shuffle(unknowns);
 	}
 	std::cout << "Finished. All patterns learned in " << loop << " loops." << std::endl;
 
