@@ -60,21 +60,19 @@ class Brain {
 
 		class Sig {
 
-			protected:
+            public:
 
                 double
                 mn,
                 mx,
-                dst,
-                dstRec;
+                dst;
 
 			public:
 
 				Sig(double const & p_min = 0, double const & p_max = 1.) :
 				mn(p_min),
                 mx(p_max),
-                dst(mx - mn),
-                dstRec(1. / dst) {
+                dst(mx - mn) {
 
 				}
 
@@ -87,10 +85,19 @@ class Brain {
 
 		class DSig : public Sig {
 
-			public:
+            public:
+
+                double
+                mn,
+                mx,
+                dstRec;
+
+            public:
 
 				DSig(double const & p_min = 0., double const & p_max = 1.) :
-                Sig(p_min, p_max) {
+                mn(p_min),
+                mx(p_max),
+                dstRec(1 / (mx - mn)) {
 
 				}
 
@@ -107,8 +114,11 @@ class Brain {
 		std::vector< std::size_t >
 		layer_sizes;
 
-		Sig const  act;
-		DSig const dact;
+        Sig
+        act;
+
+        DSig
+        dact;
 
 		double
 		eta0,
@@ -123,10 +133,10 @@ class Brain {
 		d; //elta
 
 		std::vector< std::vector< std::vector< double > > >
-		w;
+        w; //eights
 
 		std::vector< std::vector< std::vector< std::vector< double > > > >
-		m;
+        m; //emory
 
 		std::size_t
 		outer_loop,
@@ -134,79 +144,54 @@ class Brain {
 		step;
 
 		std::size_t
-		save_weights_every_n_loops;
+        weights_to_history_storing_period;
 
 	public:
 
 		Brain( std::initializer_list< std::size_t > const & p_layer_sizes,
-				double const & p_eta = .5, double const & p_eta_halftime = 1000, double const & p_delta_eta = .8,
-				double const & p_activation_min = 0., double const & p_activation_max = 1.,
-				double const & p_weights_min = -1., double const & p_weights_max = 1.,
-				std::size_t const & p_seed = time(nullptr),
-				std::size_t const & p_save_weights_every_n_loops = 0 ) :
+            double const & p_eta = .5, double const & p_eta_halftime = 1000, double const & p_delta_eta = .8,
+            double const & p_activation_min = 0., double const & p_activation_max = 1.,
+            double const & p_weights_min = -1., double const & p_weights_max = 1.,
+            std::size_t const & p_seed = time(nullptr),
+            std::size_t const & p_weights_to_history_storing_period = 0 ) :
 		layer_sizes( p_layer_sizes.begin( ), p_layer_sizes.end( ) ),
 		act(  p_activation_min, p_activation_max ),
 		dact( p_activation_min, p_activation_max ),
 		eta0( p_eta ),
+        eta( eta0),
 		eta_halftime( p_eta_halftime ),
 		delta_eta(p_delta_eta),
 		weights_min( p_weights_min),
 		weights_max( p_weights_max),
-		save_weights_every_n_loops( p_save_weights_every_n_loops ) {
+        weights_to_history_storing_period( p_weights_to_history_storing_period ) {
 
 			configure( p_weights_min, p_weights_max, p_seed );
 		}
 
-		Brain( std::vector< std::size_t > const & p_layerSizes,
-				double const & p_eta = .5, double const & p_eta_halftime = 1000, double const & p_delta_eta = .8,
-				double const &  p_activation_min = 0., double const & p_activation_max = 1.,
-				double const &  p_weights_min = -1., double const & p_weights_max = 1.,
-				std::size_t const & p_seed = time(nullptr),
-				std::size_t const & p_save_weights_every_n_loops = 0 ) :
-		layer_sizes( p_layerSizes.begin( ), p_layerSizes.end( ) ),
-		act(  p_activation_min, p_activation_max ),
-		dact( p_activation_min, p_activation_max ),
-		eta0( p_eta ),
-		eta_halftime( p_eta_halftime ),
-		delta_eta(p_delta_eta),
-		weights_min( p_weights_min),
-		weights_max( p_weights_max),
-		save_weights_every_n_loops( p_save_weights_every_n_loops ) {
+        Brain( std::vector< std::size_t > const & p_layerSizes,
+            double const & p_eta = .5, double const & p_eta_halftime = 1000, double const & p_delta_eta = .8,
+            double const &  p_activation_min = 0., double const & p_activation_max = 1.,
+            double const &  p_weights_min = -1., double const & p_weights_max = 1.,
+            std::size_t const & p_seed = time(nullptr),
+            std::size_t const & p_weights_to_history_storing_period = 0 ) :
+        layer_sizes( p_layerSizes.begin( ), p_layerSizes.end( ) ),
+        act(  p_activation_min, p_activation_max ),
+        dact( p_activation_min, p_activation_max ),
+        eta0( p_eta ),
+        eta( eta0),
+        eta_halftime( p_eta_halftime ),
+        delta_eta(p_delta_eta),
+        weights_min( p_weights_min),
+        weights_max( p_weights_max),
+        weights_to_history_storing_period( p_weights_to_history_storing_period ) {
 
-			configure( p_weights_min, p_weights_max, p_seed );
-		}
+            configure( p_weights_min, p_weights_max, p_seed );
+        }
 
-		Brain
-		& fromFileInputStream(std::ifstream & p_ifs) {
+        Brain( std::string const & p_filename) {
 
-			alg::load(p_ifs, w);
-
-			layer_sizes.resize(w.size() + 1);
-
-			layer_sizes[0] = w[0][0].size() - 1;
-
-			for(std::size_t i = 0; i < w.size(); ++ i) {
-
-				layer_sizes[i + 1] = w[i].size();
-			}
-
-			o.resize(0);
-			d.resize(0);
-
-			for( std::size_t i = 0; i < layer_sizes.size( ) - 1; ++ i ) {
-
-				o.push_back( std::vector< double >( layer_sizes[ i ] + 1, 1. ) );
-			}
-
-			o.push_back( std::vector< double >( layer_sizes[ layer_sizes.size() - 1 ], 0. ) );
-
-			for( std::size_t i = 1; i < layer_sizes.size( ); ++ i ) {
-
-				d.push_back( std::vector< double >( layer_sizes[ i ] ) );
-			}
-
-			return *this;
-		}
+            loadMe(p_filename);
+        }
 
 		static std::vector< double >
 		digitize( double const & p_x, double const & p_x0, double const & p_x1, std::size_t p_digits ) {
@@ -234,7 +219,7 @@ class Brain {
 				}
 				else {
 
-					bit[ p_digits ] = 1;
+                    bit[ p_digits ] = 1;
 
 					x -= .5;
 				}
@@ -426,22 +411,10 @@ class Brain {
 			return m;
 		}
 
-		void
-        saveHistory(std::string const & p_filename) const {
-
-			alg::save(p_filename, m);
-		}
-
 		bool
         loadHistory(std::string const & p_filename) {
 
 			return alg::load(p_filename, m);
-		}
-
-		void
-        saveWeights(std::string const & p_filename) const {
-
-			alg::save(p_filename, w);
 		}
 
 		bool
@@ -466,18 +439,6 @@ class Brain {
 		& history( std::size_t const & p_id, std::size_t const & p_layer, std::size_t const & p_row ) const {
 
 			return m[ p_id ][ p_layer ][ p_row ];
-		}
-
-		std::vector< std::vector< double > > const
-		& weights( std::size_t const & p_layer ) const {
-
-			return w[ p_layer ];
-		}
-
-		std::vector< double > const
-		& weights( std::size_t const & p_layer, std::size_t const & p_row ) const {
-
-			return w[ p_layer ][ p_row ];
 		}
 
 		std::vector< double > const
@@ -544,13 +505,106 @@ class Brain {
 			return o[ o.size( ) - 1 ][ p_index ];
 		}
 
-		std::string
-		str( std::vector< double > const & p_vec, std::size_t p_len = 0 ) const {
+        void
+        randomizeWeights( std::size_t const & p_seed = time( nullptr ) ) {
+
+            srand( p_seed );
+
+            for( auto & mat : w )
+
+                for( auto & vec : mat )
+
+                    for( auto & val : vec )
+
+                        val = weights_min + ( weights_max - weights_min ) * std::rand( ) / RAND_MAX;
+
+            outer_loop = 0;
+
+            inner_loop = 0;
+
+            step = 0;
+
+            m = { w };
+        }
+
+        void
+        remember( std::vector< double > const & p_pattern ) {
+
+            std::size_t
+            layer = 0;
+
+            for( std::size_t i = 0; i < layer_sizes[ layer ]; ++ i ) {
+
+                o[ layer ][ i ] = p_pattern[ i ];
+            }
+
+            while( layer + 1 < layer_sizes.size( ) ) {
+
+                for ( std::size_t i = 0; i < w[ layer ].size( ); ++ i ) {
+
+                    double
+                    sum = 0.;
+
+                    for ( std::size_t j = 0; j < o[ layer ].size( ); ++ j ) {
+
+                        sum += w[ layer ][ i ][ j ] * o[ layer ][ j ];
+                    }
+
+                    o[ layer + 1 ][ i ] = act( sum );
+                }
+
+                ++ layer;
+            }
+        }
+
+        bool
+        saveHistory(std::string const & p_filename) const {
+
+            return alg::save(p_filename, m);
+        }
+
+        bool
+        saveWeights(std::string const & p_filename) const {
+
+            return alg::save(p_filename, w);
+        }
+
+        bool
+        saveMe(std::string const & p_filename) {
+
+            std::ofstream
+            ofs(p_filename+"-meta.dat");
+
+            if(! ofs.is_open())
+
+                return false;
+
+            ofs
+                << "Activation-Min: " << act.mn << std::endl
+                << "Activation-Max: " << act.mx << std::endl
+                << "Weights-Min:    " << weights_min << std::endl
+                << "Weights-Max:    " << weights_max << std::endl
+                << "Eta:            " << eta0 << std::endl
+                << "Delta-Eta:      " << delta_eta << std::endl
+                << "Eta-Halftime:   " << eta_halftime << std::endl
+                << "Step:           " << step << std::endl
+                << "Storing period: " << weights_to_history_storing_period << std::endl
+                << "Layer-Sizes:    " << str(layer_sizes) << std::endl;
+
+            ofs.close();
+
+            return saveHistory(p_filename+"-history.dat") && saveWeights(p_filename+"-weights.dat");
+        }
+
+        template< typename T >
+        std::string
+        str( std::vector< T > const & p_vec, std::size_t p_len = 0 ) const {
 
 			std::size_t
 			len    = 0;
 
-			std::vector< double >::const_iterator
+
+            typename std::vector< T >::const_iterator
 			ci = p_vec.cbegin( ),
 			ce = p_vec.cend( );
 
@@ -590,59 +644,7 @@ class Brain {
 			return ss.str( );
 		}
 
-		void
-		randomizeWeights( std::size_t const & p_seed = time( nullptr ) ) {
-
-			srand( p_seed );
-
-			for( auto & mat : w )
-
-				for( auto & vec : mat )
-
-					for( auto & val : vec )
-
-						val = weights_min + ( weights_max - weights_min ) * std::rand( ) / RAND_MAX;
-
-			outer_loop = 0;
-
-			inner_loop = 0;
-
-			step = 0;
-
-			m = { w };
-		}
-
-		void
-		remember( std::vector< double > const & p_pattern ) {
-
-			std::size_t
-			layer = 0;
-
-			for( std::size_t i = 0; i < layer_sizes[ layer ]; ++ i ) {
-
-				o[ layer ][ i ] = p_pattern[ i ];
-			}
-
-			while( layer + 1 < layer_sizes.size( ) ) {
-
-				for ( std::size_t i = 0; i < w[ layer ].size( ); ++ i ) {
-
-					double
-					sum = 0.;
-
-					for ( std::size_t j = 0; j < o[ layer ].size( ); ++ j ) {
-
-						sum += w[ layer ][ i ][ j ] * o[ layer ][ j ];
-					}
-
-					o[ layer + 1 ][ i ] = act( sum );
-				}
-
-				++ layer;
-			}
-		}
-
-		void
+        void
 		teach( std::vector< double > const & p_teacher ) {
 
 			std::size_t
@@ -670,13 +672,9 @@ class Brain {
 				}
 			}
 
-/*
-			e(t2) = e(t0) * 2 ^ (-t/t0)
-*/
-            //std::cout << -double(step) / eta_halftime << std::endl;
             eta = eta0 * pow(2., -double(step) / eta_halftime);
-//            eta = eta0;
-			double
+
+            double
 			e = eta;
 
 			for( layer = 0; layer < w.size( ); ++ layer ) {
@@ -692,7 +690,7 @@ class Brain {
                 e *= delta_eta;
 			}
 
-			if( save_weights_every_n_loops && save_weights_every_n_loops < ++ inner_loop ) {
+            if( weights_to_history_storing_period && weights_to_history_storing_period < ++ inner_loop ) {
 
 				inner_loop = 0;
 
@@ -703,6 +701,154 @@ class Brain {
 
 			++ step;
 		}
+
+        std::vector< std::vector< double > > const
+        & weights( std::size_t const & p_layer ) const {
+
+            return w[ p_layer ];
+        }
+
+        std::vector< double > const
+        & weights( std::size_t const & p_layer, std::size_t const & p_row ) const {
+
+            return w[ p_layer ][ p_row ];
+        }
+
+
+    private:
+
+        bool
+        fromFileInputStream(std::ifstream & p_ifs) {
+
+            if(! alg::load(p_ifs, w))
+
+                return false;
+
+            layer_sizes.resize(w.size() + 1);
+
+            layer_sizes[0] = w[0][0].size() - 1;
+
+            for(std::size_t i = 0; i < w.size(); ++ i) {
+
+                layer_sizes[i + 1] = w[i].size();
+            }
+
+            o.resize(0);
+            d.resize(0);
+
+            for( std::size_t i = 0; i < layer_sizes.size( ) - 1; ++ i ) {
+
+                o.push_back( std::vector< double >( layer_sizes[ i ] + 1, 1. ) );
+            }
+
+            o.push_back( std::vector< double >( layer_sizes[ layer_sizes.size() - 1 ], 0. ) );
+
+            for( std::size_t i = 1; i < layer_sizes.size( ); ++ i ) {
+
+                d.push_back( std::vector< double >( layer_sizes[ i ] ) );
+            }
+
+            return true;
+        }
+
+        bool
+        loadMe(std::string const & p_filename) {
+
+            std::ifstream
+            ifs(p_filename+"-meta.dat");
+
+            if(! ifs.is_open())
+
+                return false;
+
+            std::string
+            line;
+
+            double
+            act_mn, act_mx,
+            weights_min, weights_max, eta0, delta_eta, eta_halftime;
+
+            std::size_t
+            step;
+
+            std::string
+            dummy;
+
+            if( std::getline(ifs, line)) {
+
+                std::istringstream
+                iss(line);
+
+                iss >> dummy >> act_mn;
+            } else return false;
+
+            if( std::getline(ifs, line)) {
+
+                std::istringstream
+                iss(line);
+
+                iss >> dummy >> act_mx;
+            } else return false;
+
+            if( std::getline(ifs, line)) {
+
+                std::istringstream
+                iss(line);
+
+                iss >> dummy >> weights_min;
+            } else return false;
+
+            if( std::getline(ifs, line)) {
+
+                std::istringstream
+                iss(line);
+
+                iss >> dummy >> weights_max;
+            } else return false;
+
+            if( std::getline(ifs, line)) {
+
+                std::istringstream
+                iss(line);
+
+                iss >> dummy >> eta0;
+            } else return false;
+
+            if( std::getline(ifs, line)) {
+
+                std::istringstream
+                iss(line);
+
+                iss >> dummy >> delta_eta;
+            } else return false;
+
+            if( std::getline(ifs, line)) {
+
+                std::istringstream
+                iss(line);
+
+                iss >> dummy >> eta_halftime;
+            } else return false;
+
+            ifs.close();
+
+            loadHistory(p_filename+"-history.dat");
+
+            std::ifstream
+            ifsW(p_filename+"-weights.dat");
+
+            if( ifsW.is_open() ) {
+
+                bool
+                succ = fromFileInputStream(ifsW);
+
+                ifsW.close();
+
+                return succ;
+            }
+
+            return false;
+        }
 };
 
 #endif // BRAIN_HPP
