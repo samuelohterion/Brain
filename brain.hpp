@@ -133,7 +133,8 @@ class Brain {
 		d; //elta
 
 		std::vector< std::vector< std::vector< double > > >
-        w; //eights
+        w, //eights
+        d_w;
 
 		std::vector< std::vector< std::vector< std::vector< double > > > >
         m; //emory
@@ -144,7 +145,7 @@ class Brain {
 		step;
 
 		std::size_t
-        weights_to_history_storing_period;
+        storing_period;
 
 	public:
 
@@ -163,7 +164,7 @@ class Brain {
 		delta_eta(p_delta_eta),
 		weights_min( p_weights_min),
 		weights_max( p_weights_max),
-        weights_to_history_storing_period( p_weights_to_history_storing_period ) {
+        storing_period( p_weights_to_history_storing_period ) {
 
 			configure( p_weights_min, p_weights_max, p_seed );
 		}
@@ -183,7 +184,7 @@ class Brain {
         delta_eta(p_delta_eta),
         weights_min( p_weights_min),
         weights_max( p_weights_max),
-        weights_to_history_storing_period( p_weights_to_history_storing_period ) {
+        storing_period( p_weights_to_history_storing_period ) {
 
             configure( p_weights_min, p_weights_max, p_seed );
         }
@@ -276,8 +277,10 @@ class Brain {
 				realNumberOfNeuoronsInLayer     = layer_sizes[ i + 1 ],
 				realNumberOfNeuoronsInPrevLayer = layer_sizes[ i ] + 1;
 
-				w.push_back( std::vector< std::vector< double > >( realNumberOfNeuoronsInLayer, std::vector< double >( realNumberOfNeuoronsInPrevLayer ) ) );
-			}
+                w.push_back( std::vector< std::vector< double > >( realNumberOfNeuoronsInLayer, std::vector< double >( realNumberOfNeuoronsInPrevLayer ) ) );
+//                w_tmp.push_back( std::vector< std::vector< double > >( realNumberOfNeuoronsInLayer, std::vector< double >( realNumberOfNeuoronsInPrevLayer ) ) );
+                d_w.push_back( std::vector< std::vector< double > >( realNumberOfNeuoronsInLayer, std::vector< double >( realNumberOfNeuoronsInPrevLayer ) ) );
+            }
 
 			randomizeWeights( p_seed );
 
@@ -588,7 +591,7 @@ class Brain {
                 << "Delta-Eta:      " << delta_eta << std::endl
                 << "Eta-Halftime:   " << eta_halftime << std::endl
                 << "Step:           " << step << std::endl
-                << "Storing period: " << weights_to_history_storing_period << std::endl
+                << "Storing-Period: " << storing_period << std::endl
                 << "Layer-Sizes:    " << str(layer_sizes) << std::endl;
 
             ofs.close();
@@ -652,8 +655,9 @@ class Brain {
 
 			for( std::size_t i = 0; i < d[ layer ].size( ); ++ i ) {
 
-				d[ layer ][ i ] = dact( o[ layer + 1 ][ i ] ) * (o[ layer + 1 ][ i ] - p_teacher[ i ]);
-			}
+//                d[ layer ][ i ] = dact( o[ layer + 1 ][ i ] ) * (o[ layer + 1 ][ i ] - p_teacher[ i ]);
+                d[ layer ][ i ] = dact( o[ layer + 1 ][ i ] ) * (p_teacher[ i ] - o[ layer + 1 ][ i ]);
+            }
 
 			while(0 < layer) {
 
@@ -677,20 +681,37 @@ class Brain {
             double
 			e = eta;
 
+            double
+            alpha = .1,//25,   //0 ... 1
+            beta  = .0; //.005 ... .03
+
 			for( layer = 0; layer < w.size( ); ++ layer ) {
 
 				for( std::size_t i = 0; i < w[ layer ].size( ); ++ i ) {
 
 					for( std::size_t j = 0; j < w[ layer ][ i ].size( ); ++ j ) {
 
-						w[ layer ][ i ][ j ] -= e * d[ layer ][ i ] * o[ layer ][ j ];
-					}
+                        //w[ layer ][ i ][ j ] -= e * d[ layer ][ i ] * o[ layer ][ j ];
+                        //w_tmp[ layer ][ i ][ j ] = w[ layer ][ i ][ j ];
+
+                        double
+                        wTmp = w[ layer ][ i ][ j ];
+
+                        double
+                        d_w_tmp = e * (
+                            (1. - alpha) * d[ layer ][ i ] * o[ layer ][ j ] +
+                            alpha        * (d_w[ layer ][ i ][ j ] - beta * wTmp)
+                        );
+
+                        d_w[ layer ][ i ][ j ] = d_w_tmp;
+                        w[ layer ][ i ][ j ]  += d_w_tmp;
+                    }
 				}
 
                 e *= delta_eta;
 			}
 
-            if( weights_to_history_storing_period && weights_to_history_storing_period < ++ inner_loop ) {
+            if( storing_period && storing_period < ++ inner_loop ) {
 
 				inner_loop = 0;
 
@@ -769,7 +790,8 @@ class Brain {
             weights_min, weights_max, eta0, delta_eta, eta_halftime;
 
             std::size_t
-            step;
+            step,
+            storing_period;
 
             std::string
             dummy;
@@ -830,7 +852,36 @@ class Brain {
                 iss >> dummy >> eta_halftime;
             } else return false;
 
+
+            if( std::getline(ifs, line)) {
+
+                std::istringstream
+                iss(line);
+
+                iss >> dummy >> step;
+            } else return false;
+
+
+            if( std::getline(ifs, line)) {
+
+                std::istringstream
+                iss(line);
+
+                iss >> dummy >> storing_period;
+            } else return false;
+
             ifs.close();
+
+            this->act = Sig(act_mn, act_mx);
+            this->act = DSig(act_mn, act_mx);
+            this->weights_min    = weights_min;
+            this->weights_max    = weights_max;
+            this->eta0           = eta0;
+            this->eta            = this->eta0;
+            this->delta_eta      = delta_eta;
+            this->eta_halftime   = eta_halftime;
+            this->step           = step;
+            this->storing_period = storing_period;
 
             loadHistory(p_filename+"-history.dat");
 

@@ -460,24 +460,24 @@ main( ) {
     std::cout << "Finished. All patterns learned in " << loop << " loops." << std::endl;
 */
     D
-    eta0         = .25,
+    eta0         = .1,
     eta_halftime = 1e7,
-    delta_eta    = .5,
+    delta_eta    = .75,
     weights_min  = -1.,
     weights_max  = 1.,
     act_min      = 0.,
     act_max      = 1.,
-    epsilon      = .1;
+    epsilon      = .2;
 
     std::size_t
-    seed          = 1,
-    saving_period = 0;
+    seed           = 1,
+    storing_period = 0;
 
 	UI
-    cbits = 23;
+    cbits = 31;
 
 	Brain
-    ramp({cbits, 5, cbits}, eta0, eta_halftime, delta_eta, act_min, act_max, weights_min, weights_max, seed, saving_period);
+    ramp({cbits, 5, cbits}, eta0, eta_halftime, delta_eta, act_min, act_max, weights_min, weights_max, seed, storing_period);
 
 	MD
     pattern = mcnst(1000, cbits, 0.),
@@ -536,8 +536,18 @@ main( ) {
     brain2 = Brain("ramp");
 
     unknowns = get_all_unknown_patterns_ids(brain2, pattern, teacher, epsilon);
-
     std::cout << "Unknowns: " << unknowns.size() << std::endl;
+
+    std::cout << "Create Brain and load weights only" << std::endl;
+    Brain
+    brain3(ramp.layer_sizes, ramp.eta0, ramp.eta_halftime, ramp.delta_eta, ramp.act.mn, ramp.act.mx, ramp.weights_min, ramp.weights_max, seed, ramp.storing_period);
+
+    if(brain3.loadWeights("ramp-weights.dat")) {
+
+        unknowns = get_all_unknown_patterns_ids(brain3, pattern, teacher, epsilon);
+
+        std::cout << "Unknowns: " << unknowns.size() << std::endl;
+    }
 
     // print("ramp history:", ramp.m);
 //	D
