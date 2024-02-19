@@ -217,18 +217,10 @@ public:
             std::size_t realNumberOfNeuoronsInLayer = layer_sizes[i + 1],
                         realNumberOfNeuoronsInPrevLayer = layer_sizes[i] + 1;
 
-            w.push_back(std::vector<std::vector<double>>(realNumberOfNeuoronsInLayer,
-                                                         std::vector<double>(
-                                                             realNumberOfNeuoronsInPrevLayer)));
-            //                w_tmp.push_back(std::vector< std::vector< double > >(realNumberOfNeuoronsInLayer, std::vector< double >(realNumberOfNeuoronsInPrevLayer)));
-            d_w.push_back(
-                std::vector<std::vector<double>>(realNumberOfNeuoronsInLayer,
-                                                 std::vector<double>(
-                                                     realNumberOfNeuoronsInPrevLayer))),
-                s_w.push_back(
-                    std::vector<std::vector<double>>(realNumberOfNeuoronsInLayer,
-                                                     std::vector<double>(
-                                                         realNumberOfNeuoronsInPrevLayer)));
+            w.push_back(std::vector<std::vector<double>>(realNumberOfNeuoronsInLayer, std::vector<double>(realNumberOfNeuoronsInPrevLayer)));
+            // w_tmp.push_back(std::vector< std::vector< double > >(realNumberOfNeuoronsInLayer, std::vector< double >(realNumberOfNeuoronsInPrevLayer)));
+            d_w.push_back(std::vector<std::vector<double>>(realNumberOfNeuoronsInLayer, std::vector<double>(realNumberOfNeuoronsInPrevLayer)));
+            s_w.push_back(std::vector<std::vector<double>>(realNumberOfNeuoronsInLayer, std::vector<double>(realNumberOfNeuoronsInPrevLayer)));
         }
 
         randomizeWeights(p_seed);
