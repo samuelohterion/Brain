@@ -478,18 +478,15 @@ main( ) {
 
 	Brain
     ramp({cbits, 5, cbits}, eta0, eta_halftime, delta_eta, act_min, act_max, weights_min, weights_max, seed, storing_period);
+    ramp.setBatchSize(32);
 
-	MD
-    pattern = mcnst(1000, cbits, 0.),
-    teacher = mcnst(1000, cbits, 0.);
+    MD pattern = mcnst(1000, cbits, 0.);
+    MD teacher = mcnst(1000, cbits, 0.);
 
-	D
-	dx1 = 1. / (pattern.size() - 1),
-	dx2 = (cbits - 1) * dx1;
+    D dx1 = 1. / (pattern.size() - 1), dx2 = (cbits - 1) * dx1;
 
-	for(UI i = 0; i < pattern.size(); ++ i) {
-
-		D
+    for (UI i = 0; i < pattern.size(); ++i) {
+        D
 		x = dx2 * i;
 
 		for(UI j = 0; j < cbits; ++ j) {
@@ -498,9 +495,9 @@ main( ) {
 		}
 
 		teacher[i] = pattern[i];
-	}
+    }
 
-	VU unknowns = get_all_unknown_patterns_ids(ramp, pattern, teacher, epsilon);
+    VU unknowns = get_all_unknown_patterns_ids(ramp, pattern, teacher, epsilon);
 	random_shuffle(unknowns);
 
 	UI
@@ -518,13 +515,13 @@ main( ) {
 
 			std::size_t j = unknowns[i];
 			ramp.remember(pattern[j]);
-			ramp.teach(teacher[j]);
-		}
+            ramp.teach_batch(teacher[j]);
+        }
 
-		unknowns = get_all_unknown_patterns_ids(ramp, pattern, teacher, epsilon);
-		random_shuffle(unknowns);
-	}
-	std::cout << "Finished. All patterns learned in " << loop << " loops." << std::endl;
+        unknowns = get_all_unknown_patterns_ids(ramp, pattern, teacher, epsilon);
+        random_shuffle(unknowns);
+    }
+    std::cout << "Finished. All patterns learned in " << loop << " loops." << std::endl;
 
     print("ramp weights:", ramp.w);
 
@@ -541,6 +538,7 @@ main( ) {
     std::cout << "Create Brain and load weights only" << std::endl;
     Brain
     brain3(ramp.layer_sizes, ramp.eta0, ramp.eta_halftime, ramp.delta_eta, ramp.act.mn, ramp.act.mx, ramp.weights_min, ramp.weights_max, seed, ramp.storing_period);
+    brain3.setBatchSize(ramp.batch_size);
 
     if(brain3.loadWeights("ramp-weights.dat")) {
 
