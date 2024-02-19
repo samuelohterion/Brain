@@ -476,9 +476,17 @@ main( ) {
 	UI
     cbits = 31;
 
-	Brain
-    ramp({cbits, 5, cbits}, eta0, eta_halftime, delta_eta, act_min, act_max, weights_min, weights_max, seed, storing_period);
-    ramp.setBatchSize(32);
+    Brain ramp({cbits, 5, cbits},
+               eta0,
+               eta_halftime,
+               delta_eta,
+               act_min,
+               act_max,
+               weights_min,
+               weights_max,
+               seed,
+               storing_period,
+               32);
 
     MD pattern = mcnst(1000, cbits, 0.);
     MD teacher = mcnst(1000, cbits, 0.);
