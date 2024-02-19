@@ -69,32 +69,27 @@ main( ) {
 
 
 	// cout << "MLP\n---\n\n";
-/*
 	srand( 3 );//time( nullptr ) );
 
-	Brain
-	brain( { 2, 2, 1 }, .5, 0., 1. );
+    Brain brain({2, 2, 2}, .5, 1e7, .75, 0., +1., -1., 1., 11, 0, 0);
 
-	std::vector< std::vector< double > >
-	pattern = {{0,0},{0,1},{1,0},{1,1}},
-	teacher = {{0},{1},{1},{0}};
+    std::vector<std::vector<double> > pattern = {{0, 0}, {0, 1}, {1, 0}, {1, 1}},
+                                      teacher = {{0, 0}, {1, 0}, {1, 0}, {0, 1}};
 
-	for( std::size_t i = 0; i < 10000; ++ i ) {
+    for (std::size_t i = 0; i < 10000; ++i) {
+        std::size_t j = rand() & 0x03;
 
-		std::size_t
-		j = rand( ) & 0x03;
+        brain.remember(pattern[j]);
+        brain.teach(teacher[j]);
+    }
 
-		brain.remember( pattern[ j ] );
-		brain.teach( teacher[ j ] );
-	}
+    for (std::size_t i = 0; i < 4; ++i) {
+        brain.remember(pattern[i]);
 
-	for( std::size_t i = 0; i < 4; ++ i ) {
+        std::cout << brain.input(0) << " " << brain.input(1) << " => " << round(brain.output(0))
+                  << " " << round(brain.output(1)) << std::endl;
+    }
 
-		brain.remember( pattern[ i ] );
-
-		std::cout << brain.str( brain.input( ), 1 ) << " => " << brain.str( brain.output( ) ) << std::endl;
-	}
-	*/
 /*
 	MD
 	x_y = mcnst< D >(64, 6),        // 64 x (3 + 3) bits: y = y2 y1 y0   x = x2 x1 x0
@@ -459,7 +454,7 @@ main( ) {
 
     std::cout << "Finished. All patterns learned in " << loop << " loops." << std::endl;
 */
-    D
+    /*    D
     eta0         = .1,
     eta_halftime = 1e7,
     delta_eta    = .75,
@@ -544,9 +539,17 @@ main( ) {
     std::cout << "Unknowns: " << unknowns.size() << std::endl;
 
     std::cout << "Create Brain and load weights only" << std::endl;
-    Brain
-    brain3(ramp.layer_sizes, ramp.eta0, ramp.eta_halftime, ramp.delta_eta, ramp.act.mn, ramp.act.mx, ramp.weights_min, ramp.weights_max, seed, ramp.storing_period);
-    brain3.setBatchSize(ramp.batch_size);
+    Brain brain3(ramp.layer_sizes,
+                 ramp.eta0,
+                 ramp.eta_halftime,
+                 ramp.delta_eta,
+                 ramp.act.mn,
+                 ramp.act.mx,
+                 ramp.weights_min,
+                 ramp.weights_max,
+                 seed,
+                 ramp.storing_period,
+                 ramp.batch_size);
 
     if(brain3.loadWeights("ramp-weights.dat")) {
 
@@ -554,6 +557,7 @@ main( ) {
 
         std::cout << "Unknowns: " << unknowns.size() << std::endl;
     }
+*/
 
     // print("ramp history:", ramp.m);
 //	D
@@ -580,6 +584,5 @@ main( ) {
 //			print("RMS: ", round(ramp.rms(), 5));
 //		}
 //	}
-
 	return 0;
 }
