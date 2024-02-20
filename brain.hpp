@@ -570,7 +570,7 @@ class Brain {
                                             + alpha * (d_w[layer][i][j] - beta * wTmp));
 
                         d_w[layer][i][j] = d_w_tmp;
-                        s_w[layer][i][j] += d_w_tmp;
+                        w[layer][i][j] += d_w_tmp;
                     }
                 }
 
