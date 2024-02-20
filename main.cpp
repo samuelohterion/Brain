@@ -418,16 +418,37 @@ main( ) {
 
 	std::cout << "Finished. All patterns learned in " << loop << " loops." << std::endl;
 */
-/*
+	D
+    eta0         = .25,
+    eta_halftime = 1e7,
+    delta_eta    = .99,
+    weights_min  = -1.,
+    weights_max  = 1.,
+    act_min      = 0.,
+    act_max      = 1.,
+    epsilon      = .2;
+
+    std::size_t
+    seed           = 13,
+    storing_period = 0;
+
+//	UI
+//   cbits = 31;
+
+//	Brain
+//    ramp({cbits, 5, cbits}, eta0, eta_halftime, delta_eta, act_min, act_max, weights_min, weights_max, seed, storing_period);
+//    ramp.setBatchSize(32);
+
     MD
-    x_y    = {{0,0}, {0,1}, {1,0}, {1,1}},
-    x_op_y = {{0,0,1,0},   {1,0,0,0},   {1,0,0,0},   {0,1,1,1}};
+    x_y    = {{0,0},     {0,1},     {1,0},     {1,1}},
+    x_op_y = {{0,0,0,1}, {0,1,1,0}, {1,0,0,1}, {0,1,1,1}};
 
     print("x_y", ~ x_y);
     print("x_op_y", ~ x_op_y);
 
     Brain
-    xorer({2, 5, 5, 4}, .25, 10000., .99,  0., 1., -1., +1., 13, 0);
+    xorer({2, 5, 4}, eta0, eta_halftime, delta_eta, act_min, act_max, weights_min, weights_max, seed, storing_period);
+    //xorer({2, 5, 5, 4}, .25, 10000., .99,  0., 1., -1., +1., 13, 0);
 
     VU unknowns = get_all_unknown_patterns_ids(xorer, x_y, x_op_y);
     std::random_shuffle(unknowns.begin(), unknowns.end());
@@ -437,7 +458,7 @@ main( ) {
 
         if(loop % 100 == 0) {
 
-            std::cout << "Loop: " << loop <<  " and still " << unknowns.size() <<  " unknown. [eta: " << xorer.eta << "]" << std::endl;
+            std::cout << "Loop: " << loop <<  " and still " << unknowns.size() <<  " unknown. [eta: " << xorer.eta << "]" <<  std::endl;
         }
 
         for(std::size_t i = 0; i < unknowns.size(); ++ i) {
@@ -445,27 +466,34 @@ main( ) {
             std::size_t j = unknowns[i];
 
             xorer.remember(x_y[j]);
+/*			double err1 = xorer.error(x_op_y[j]);
+			std::cout << i << ": " << err1 << "  ";
+*/
             xorer.teach(x_op_y[j]);
-        }
+ /*
+            xorer.remember(x_y[j]);
+			double err2 = xorer.error(x_op_y[j]);
+			std::cout << err2 << "  " << err1 - err2 << std::endl;
+ */
+       }
 
-        unknowns = get_all_unknown_patterns_ids(xorer, x_y, x_op_y);
+        unknowns = get_all_unknown_patterns_ids(xorer, x_y, x_op_y, epsilon);
         std::random_shuffle(unknowns.begin(), unknowns.end());
     }
 
     std::cout << "Finished. All patterns learned in " << loop << " loops." << std::endl;
-*/
-    /*    D
-    eta0         = .1,
-    eta_halftime = 1e7,
-    delta_eta    = .75,
-    weights_min  = -1.,
-    weights_max  = 1.,
-    act_min      = 0.,
-    act_max      = 1.,
+ 
+    
+    eta0         = .1;
+    eta_halftime = 1e7;
+    delta_eta    = .75;
+    weights_min  = -1.;
+    weights_max  = 1.;
+    act_min      = 0.;
+    act_max      = 1.;
     epsilon      = .2;
 
-    std::size_t
-    seed           = 1,
+    seed           = 1;
     storing_period = 0;
 
 	UI
@@ -500,10 +528,10 @@ main( ) {
 		teacher[i] = pattern[i];
     }
 
-    VU unknowns = get_all_unknown_patterns_ids(ramp, pattern, teacher, epsilon);
+    unknowns = get_all_unknown_patterns_ids(ramp, pattern, teacher, epsilon);
 	random_shuffle(unknowns);
 
-	UI
+	
 	loop = 0;
 	while(0 < unknowns.size() && ++ loop <= 10000000) {
 
@@ -518,7 +546,7 @@ main( ) {
 
 			std::size_t j = unknowns[i];
 			ramp.remember(pattern[j]);
-            ramp.teach_batch(teacher[j]);
+            ramp.teach(teacher[j]);
         }
 
         unknowns = get_all_unknown_patterns_ids(ramp, pattern, teacher, epsilon);
@@ -557,7 +585,7 @@ main( ) {
 
         std::cout << "Unknowns: " << unknowns.size() << std::endl;
     }
-*/
+
 
     // print("ramp history:", ramp.m);
 //	D

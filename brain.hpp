@@ -574,7 +574,6 @@ public:
                     w[layer][i][j] += d_w_tmp;
                 }
             }
-
             e *= delta_eta;
         }
 
