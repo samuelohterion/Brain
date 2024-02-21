@@ -9,7 +9,7 @@
       "stopAtEntry": false,
       "externalConsole": false,
       "cwd": "/home/tpeschel/private/dev/github-repos-backup-2022/Brain",
-      "program": "/home/tpeschel/private/dev/github-repos-backup-2022/Brain/build/Debug/outDebug",
+      "program": "/home/tpeschel/private/dev/github-repos-backup-2022/Brain/build/Release/outRelease",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [

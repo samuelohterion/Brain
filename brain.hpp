@@ -16,34 +16,33 @@ template <typename T = int>
 class QueueSum : public std::deque<T> {
 
     private:
+    
         T
         __sum;
 
     public:
-        QueueSum(std::size_t const &p_size) : std::deque<T>(p_size),
-                                            __sum(0) {
+
+        QueueSum(std::size_t const &p_size) :
+        std::deque<T>(p_size),
+        __sum(0) {
         }
 
         QueueSum<T> &
         add(T const &p_value) {
-
             __sum -= this->back();
             this->pop_back();
             this->push_front(p_value);
             __sum += p_value;
-
             return *this;
         }
 
-        T sum() const
-        {
-
+        T
+        sum() const {
             return __sum;
         }
 
-        T mean() const
-        {
-
+        T
+        mean() const {
             return __sum / this->size();
         }
 };
@@ -51,12 +50,16 @@ class QueueSum : public std::deque<T> {
 class Brain {
 
     private:
+
         class Sig {
+
             public:
+
                 double
                 mn, mx, dst;
 
             public:
+
                 Sig(double const &p_min = 0, double const &p_max = 1.) :
                 mn(p_min), mx(p_max), dst(mx - mn) {
             }
@@ -69,7 +72,9 @@ class Brain {
 
         class DSig :
         public Sig {
+        
             public:
+        
                 double
                 mn, mx, dstRec;
 
@@ -100,10 +105,14 @@ class Brain {
         eta0, eta, eta_halftime, delta_eta, weights_min, weights_max;
 
         std::size_t
-        batch_size, batch_count;
+        batch_size, batch_count,
+        step,
+        storing_loop,
+        storing_period;
 
-        std::vector<std::vector<double>> o, // utput
-        d;                              // elta
+        std::vector<std::vector<double>>
+        o, // utput
+        d; // elta
 
         std::vector<std::vector<std::vector<double>>>
         w, // eights
@@ -112,10 +121,9 @@ class Brain {
         std::vector<std::vector<std::vector<std::vector<double>>>>
         m; // emory
 
-        std::size_t
-        outer_loop, inner_loop, step, storing_period;
 
     public:
+
         Brain(
             std::initializer_list<std::size_t> const &p_layer_sizes,
             double const &p_eta = .5,
@@ -133,12 +141,13 @@ class Brain {
         eta0(p_eta), eta(eta0), eta_halftime(p_eta_halftime), delta_eta(p_delta_eta),
         weights_min(p_weights_min), weights_max(p_weights_max),
         batch_size(p_batch_size), batch_count(0),
-        storing_period(p_weights_to_history_storing_period) {
+        step(0),
+        storing_loop(0), storing_period(p_weights_to_history_storing_period) {
             configure(p_weights_min, p_weights_max, p_seed);
         }
 
         Brain(
-            std::vector<std::size_t> const &p_layerSizes,
+            std::vector<std::size_t> const &p_layer_sizes,
             double const &p_eta = .5,
             double const &p_eta_halftime = 1000,
             double const &p_delta_eta = .8,
@@ -149,12 +158,13 @@ class Brain {
             std::size_t const &p_seed = time(nullptr),
             std::size_t const &p_weights_to_history_storing_period = 0,
             std::size_t const &p_batch_size = 0) :
-        layer_sizes(p_layerSizes.begin(), p_layerSizes.end()),
+        layer_sizes(p_layer_sizes.begin(), p_layer_sizes.end()),
         act(p_activation_min, p_activation_max), dact(p_activation_min, p_activation_max),
         eta0(p_eta), eta(eta0), eta_halftime(p_eta_halftime), delta_eta(p_delta_eta),
         weights_min(p_weights_min), weights_max(p_weights_max),
         batch_size(p_batch_size), batch_count(0),
-        storing_period(p_weights_to_history_storing_period) {
+        step(0),
+        storing_loop(0), storing_period(p_weights_to_history_storing_period) {
             configure(p_weights_min, p_weights_max, p_seed);
         }
 
@@ -210,7 +220,7 @@ class Brain {
             for (std::size_t i = 0; i < layer_sizes.size() - 1; ++i) {
                 o.push_back(std::vector<double>(layer_sizes[i] + 1, 1.));
             }
-            o.push_back(std::vector<double>(layer_sizes[layer_sizes.size() - 1], 0.));
+            o.push_back(std::vector<double>(layer_sizes[layer_sizes.size() - 1], 1.));
             for (std::size_t i = 1; i < layer_sizes.size(); ++i) {
                 d.push_back(std::vector<double>(layer_sizes[i]));
             }
@@ -218,7 +228,6 @@ class Brain {
                 std::size_t
                 realNumberOfNeuoronsInLayer = layer_sizes[i + 1],
                 realNumberOfNeuoronsInPrevLayer = layer_sizes[i] + 1;
-
                 w.push_back(std::vector<std::vector<double>>(realNumberOfNeuoronsInLayer, std::vector<double>(realNumberOfNeuoronsInPrevLayer)));
                 d_w.push_back(std::vector<std::vector<double>>(realNumberOfNeuoronsInLayer, std::vector<double>(realNumberOfNeuoronsInPrevLayer)));
                 s_w.push_back(std::vector<std::vector<double>>(realNumberOfNeuoronsInLayer, std::vector<double>(realNumberOfNeuoronsInPrevLayer)));
@@ -385,8 +394,7 @@ class Brain {
                 for (auto &vec : mat)
                     for (auto &val : vec)
                         val = weights_min + (weights_max - weights_min) * std::rand() / RAND_MAX;
-            outer_loop = 0;
-            inner_loop = 0;
+            storing_loop = 0;
             step = 0;
             m = {w};
         }
@@ -510,9 +518,8 @@ class Brain {
                 }
                 e *= delta_eta;
             }
-            if (storing_period && storing_period < ++inner_loop) {
-                inner_loop = 0;
-                ++outer_loop;
+            if (storing_period && storing_period < ++storing_loop) {
+                storing_loop = 0;
                 m.push_back(w);
             }
             ++step;
@@ -561,9 +568,8 @@ class Brain {
             if (batch_size <= batch_count) {
                 batch_count = 0;
             }
-            if (storing_period && storing_period < ++inner_loop) {
-                inner_loop = 0;
-                ++outer_loop;
+            if (storing_period && storing_period < ++storing_loop) {
+                storing_loop = 0;
                 m.push_back(w);
             }
             ++step;

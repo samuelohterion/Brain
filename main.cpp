@@ -67,28 +67,30 @@ main( ) {
 //	std::cout << qs.add(-1) << std::endl << qs.sum() << std::endl;
 //	std::cout << qs.add(-1) << std::endl << qs.sum() << std::endl;
 
+	{
+	
+		// cout << "MLP\n---\n\n";
+		srand( 3 );//time( nullptr ) );
 
-	// cout << "MLP\n---\n\n";
-	srand( 3 );//time( nullptr ) );
+		Brain brain({2, 2, 2}, .5, 1e7, .75, 0., +1., -1., 1., 11, 0, 0);
 
-    Brain brain({2, 2, 2}, .5, 1e7, .75, 0., +1., -1., 1., 11, 0, 0);
+		std::vector<std::vector<double> >
+		pattern = {{0, 0}, {0, 1}, {1, 0}, {1, 1}},
+		teacher = {{0, 0}, {1, 0}, {1, 0}, {0, 1}};
 
-    std::vector<std::vector<double> > pattern = {{0, 0}, {0, 1}, {1, 0}, {1, 1}},
-                                      teacher = {{0, 0}, {1, 0}, {1, 0}, {0, 1}};
+		for (std::size_t i = 0; i < 10000; ++i) {
+			std::size_t j = rand() & 0x03;
+			brain.remember(pattern[j]);
+			brain.teach(teacher[j]);
+		}
 
-    for (std::size_t i = 0; i < 10000; ++i) {
-        std::size_t j = rand() & 0x03;
-
-        brain.remember(pattern[j]);
-        brain.teach(teacher[j]);
-    }
-
-    for (std::size_t i = 0; i < 4; ++i) {
-        brain.remember(pattern[i]);
-
-        std::cout << brain.input(0) << " " << brain.input(1) << " => " << round(brain.output(0))
-                  << " " << round(brain.output(1)) << std::endl;
-    }
+		for (std::size_t i = 0; i < 4; ++i) {
+			brain.remember(pattern[i]);
+			std::cout << brain.input(0) << " " << brain.input(1)
+			<< " => " << round(brain.output(0)) << " " << round(brain.output(1))
+			<< std::endl;
+		}
+	}
 
 /*
 	MD
@@ -418,20 +420,21 @@ main( ) {
 
 	std::cout << "Finished. All patterns learned in " << loop << " loops." << std::endl;
 */
-	D
-    eta0         = .25,
-    eta_halftime = 1e7,
-    delta_eta    = .99,
-    weights_min  = -1.,
-    weights_max  = 1.,
-    act_min      = 0.,
-    act_max      = 1.,
-    epsilon      = .2;
+	{
+		D
+		eta0         = .25,
+		eta_halftime = 1e7,
+		delta_eta    = .99,
+		weights_min  = -1.,
+		weights_max  = 1.,
+		act_min      = 0.,
+		act_max      = 1.,
+		epsilon      = .2;
 
-    std::size_t
-    seed           = 13,
-    storing_period = 0;
-
+		std::size_t
+		seed           = 13,
+		storing_period = 0;
+	
 //	UI
 //   cbits = 31;
 
@@ -439,154 +442,165 @@ main( ) {
 //    ramp({cbits, 5, cbits}, eta0, eta_halftime, delta_eta, act_min, act_max, weights_min, weights_max, seed, storing_period);
 //    ramp.setBatchSize(32);
 
-    MD
-    x_y    = {{0,0},     {0,1},     {1,0},     {1,1}},
-    x_op_y = {{0,0,0,1}, {0,1,1,0}, {1,0,0,1}, {0,1,1,1}};
+		MD
+		x_y    = {
+			{0,0},
+			{0,1},
+			{1,0},
+			{1,1}
+		},
+		x_op_y = {
+			{0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1},
+			{0,0,0,0,1,1,1,1,0,0,0,0,1,1,1,1},
+			{0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1},
+			{0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1}
+		};
 
-    print("x_y", ~ x_y);
-    print("x_op_y", ~ x_op_y);
+		print("x_y", ~ x_y);
+		print("x_op_y", x_op_y);
 
-    Brain
-    xorer({2, 5, 4}, eta0, eta_halftime, delta_eta, act_min, act_max, weights_min, weights_max, seed, storing_period);
-    //xorer({2, 5, 5, 4}, .25, 10000., .99,  0., 1., -1., +1., 13, 0);
+		Brain
+		logic({2, 4, 16}, eta0, eta_halftime, delta_eta, act_min, act_max, weights_min, weights_max, seed, storing_period);
+		//logic({2, 5, 5, 4}, .25, 10000., .99,  0., 1., -1., +1., 13, 0);
 
-    VU unknowns = get_all_unknown_patterns_ids(xorer, x_y, x_op_y);
-    std::random_shuffle(unknowns.begin(), unknowns.end());
-    std::size_t loop = 0;
+		VU unknowns = get_all_unknown_patterns_ids(logic, x_y, x_op_y);
+		std::random_shuffle(unknowns.begin(), unknowns.end());
+		std::size_t loop = 0;
 
-    while(0 < unknowns.size() && ++ loop <= 1000000) {
+		while(0 < unknowns.size() && ++ loop <= 1000000) {
 
-        if(loop % 100 == 0) {
+			if(loop % 100 == 0) {
 
-            std::cout << "Loop: " << loop <<  " and still " << unknowns.size() <<  " unknown. [eta: " << xorer.eta << "]" <<  std::endl;
-        }
+				std::cout << "Loop: " << loop <<  " and still " << unknowns.size() <<  " unknown. [eta: " << logic.eta << "]" <<  std::endl;
+			}
 
-        for(std::size_t i = 0; i < unknowns.size(); ++ i) {
+			for(std::size_t i = 0; i < unknowns.size(); ++ i) {
 
-            std::size_t j = unknowns[i];
+				std::size_t j = unknowns[i];
 
-            xorer.remember(x_y[j]);
-/*			double err1 = xorer.error(x_op_y[j]);
-			std::cout << i << ": " << err1 << "  ";
-*/
-            xorer.teach(x_op_y[j]);
- /*
-            xorer.remember(x_y[j]);
-			double err2 = xorer.error(x_op_y[j]);
-			std::cout << err2 << "  " << err1 - err2 << std::endl;
- */
-       }
+				logic.remember(x_y[j]);
+	/*			double err1 = logic.error(x_op_y[j]);
+				std::cout << i << ": " << err1 << "  ";
+	*/
+				logic.teach(x_op_y[j]);
+	/*
+				logic.remember(x_y[j]);
+				double err2 = logic.error(x_op_y[j]);
+				std::cout << err2 << "  " << err1 - err2 << std::endl;
+	*/
+			}
 
-        unknowns = get_all_unknown_patterns_ids(xorer, x_y, x_op_y, epsilon);
-        std::random_shuffle(unknowns.begin(), unknowns.end());
-    }
+			unknowns = get_all_unknown_patterns_ids(logic, x_y, x_op_y, epsilon);
+			std::random_shuffle(unknowns.begin(), unknowns.end());
+		}
 
-    std::cout << "Finished. All patterns learned in " << loop << " loops." << std::endl;
+		std::cout << "Finished. All patterns learned in " << loop << " loops." << std::endl << std::endl;
+	}
  
-    
-    eta0         = .1;
-    eta_halftime = 1e7;
-    delta_eta    = .75;
-    weights_min  = -1.;
-    weights_max  = 1.;
-    act_min      = 0.;
-    act_max      = 1.;
-    epsilon      = .2;
+	{
+		D    
+		eta0         = .1,
+		eta_halftime = 1e7,
+		delta_eta    = .75,
+		weights_min  = -1.,
+		weights_max  = 1.,
+		act_min      = 0.,
+		act_max      = 1.,
+		epsilon      = .2;
 
-    seed           = 1;
-    storing_period = 0;
+		std::size_t
+		seed           = 1,
+		storing_period = 0;
 
-	UI
-    cbits = 31;
+		UI
+		cbits = 31;
 
-    Brain ramp({cbits, 5, cbits},
-               eta0,
-               eta_halftime,
-               delta_eta,
-               act_min,
-               act_max,
-               weights_min,
-               weights_max,
-               seed,
-               storing_period,
-               32);
+		Brain ramp({cbits, 5, cbits},
+				eta0,
+				eta_halftime,
+				delta_eta,
+				act_min,
+				act_max,
+				weights_min,
+				weights_max,
+				seed,
+				storing_period,
+				32);
 
-    MD pattern = mcnst(1000, cbits, 0.);
-    MD teacher = mcnst(1000, cbits, 0.);
+		MD pattern = mcnst(1000, cbits, 0.);
+		MD teacher = mcnst(1000, cbits, 0.);
 
-    D dx1 = 1. / (pattern.size() - 1), dx2 = (cbits - 1) * dx1;
+		D dx1 = 1. / (pattern.size() - 1), dx2 = (cbits - 1) * dx1;
 
-    for (UI i = 0; i < pattern.size(); ++i) {
-        D
-		x = dx2 * i;
+		for (UI i = 0; i < pattern.size(); ++i) {
+			D
+			x = dx2 * i;
 
-		for(UI j = 0; j < cbits; ++ j) {
+			for(UI j = 0; j < cbits; ++ j) {
 
-			pattern[i][j] = exp(- (x - j) * (x - j) / 1.);
+				pattern[i][j] = exp(- (x - j) * (x - j) / 1.);
+			}
+
+			teacher[i] = pattern[i];
 		}
 
-		teacher[i] = pattern[i];
-    }
+		VU unknowns = get_all_unknown_patterns_ids(ramp, pattern, teacher, epsilon);
+		random_shuffle(unknowns);
+		
+		std::size_t
+		loop = 0;
 
-    unknowns = get_all_unknown_patterns_ids(ramp, pattern, teacher, epsilon);
-	random_shuffle(unknowns);
+		while(0 < unknowns.size() && ++ loop <= 10000000) {
 
-	
-	loop = 0;
-	while(0 < unknowns.size() && ++ loop <= 10000000) {
+			//adder.eta = eta * (exp10(-D(loop / 100000.)));
 
-		//adder.eta = eta * (exp10(-D(loop / 100000.)));
+			if(loop % 10 == 0) {
 
-        if(loop % 10 == 0) {
+				std::cout << "Loop: " << loop <<  " and still " << unknowns.size() <<  " unknown. [eta: " << ramp.eta << "] [step: " << ramp.step << "] [rms: " << ramp.rms() << "]" << std::endl;
+			}
 
-            std::cout << "Loop: " << loop <<  " and still " << unknowns.size() <<  " unknown. [eta: " << ramp.eta << "] [step: " << ramp.step << "] [rms: " << ramp.rms() << "]" << std::endl;
+			for(std::size_t i = 0; i < unknowns.size(); ++ i) {
+
+				std::size_t j = unknowns[i];
+				ramp.remember(pattern[j]);
+				ramp.teach(teacher[j]);
+			}
+
+			unknowns = get_all_unknown_patterns_ids(ramp, pattern, teacher, epsilon);
+			random_shuffle(unknowns);
+		}
+		std::cout << "Finished. All patterns learned in " << loop << " loops." << std::endl;
+
+		print("ramp weights:", ramp.w);
+
+		std::cout << "Save Brain" << std::endl;
+		ramp.saveMe("ramp");
+
+		std::cout << "Load Brain" << std::endl;
+		Brain
+		brain2 = Brain("ramp");
+
+		unknowns = get_all_unknown_patterns_ids(brain2, pattern, teacher, epsilon);
+		std::cout << "Unknowns: " << unknowns.size() << std::endl;
+
+		std::cout << "Create Brain and load weights only" << std::endl;
+		Brain brain3(
+			ramp.layer_sizes,
+			ramp.eta0,ramp.eta_halftime, ramp.delta_eta,
+			ramp.act.mn, ramp.act.mx,
+			ramp.weights_min, ramp.weights_max,
+			seed,
+			ramp.storing_period,
+			ramp.batch_size);
+
+		if(brain3.loadWeights("ramp-weights.dat")) {
+
+			unknowns = get_all_unknown_patterns_ids(brain3, pattern, teacher, epsilon);
+
+			std::cout << "Unknowns: " << unknowns.size() << std::endl;
 		}
 
-		for(std::size_t i = 0; i < unknowns.size(); ++ i) {
-
-			std::size_t j = unknowns[i];
-			ramp.remember(pattern[j]);
-            ramp.teach(teacher[j]);
-        }
-
-        unknowns = get_all_unknown_patterns_ids(ramp, pattern, teacher, epsilon);
-        random_shuffle(unknowns);
-    }
-    std::cout << "Finished. All patterns learned in " << loop << " loops." << std::endl;
-
-    print("ramp weights:", ramp.w);
-
-    std::cout << "Save Brain" << std::endl;
-    ramp.saveMe("ramp");
-
-    std::cout << "Load Brain" << std::endl;
-    Brain
-    brain2 = Brain("ramp");
-
-    unknowns = get_all_unknown_patterns_ids(brain2, pattern, teacher, epsilon);
-    std::cout << "Unknowns: " << unknowns.size() << std::endl;
-
-    std::cout << "Create Brain and load weights only" << std::endl;
-    Brain brain3(ramp.layer_sizes,
-                 ramp.eta0,
-                 ramp.eta_halftime,
-                 ramp.delta_eta,
-                 ramp.act.mn,
-                 ramp.act.mx,
-                 ramp.weights_min,
-                 ramp.weights_max,
-                 seed,
-                 ramp.storing_period,
-                 ramp.batch_size);
-
-    if(brain3.loadWeights("ramp-weights.dat")) {
-
-        unknowns = get_all_unknown_patterns_ids(brain3, pattern, teacher, epsilon);
-
-        std::cout << "Unknowns: " << unknowns.size() << std::endl;
-    }
-
-
+	}
     // print("ramp history:", ramp.m);
 //	D
 //	err = 10.;
