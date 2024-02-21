@@ -608,18 +608,25 @@ class Brain {
 
         bool
         loadMe(std::string const &p_filename) {
+
             std::ifstream ifs(p_filename + "-meta.dat");
+
             if (!ifs.is_open()) {
                 return false;
             }
+
             std::string
             line;
+
             double
-            act_mn, act_mx, weights_min, weights_max, eta0, delta_eta, eta_halftime;
+            act_mn, act_mx, lweights_min, lweights_max, leta0, ldelta_eta, leta_halftime;
+
             std::size_t
-            step, storing_period, batch_size;
+            lstep, lstoring_period, lbatch_size;
+
             std::string
             dummy;
+
             if (std::getline(ifs, line)) {
                 std::istringstream iss(line);
                 iss >> dummy >> act_mn;
@@ -634,64 +641,65 @@ class Brain {
             }
             if (std::getline(ifs, line)) {
                 std::istringstream iss(line);
-                iss >> dummy >> weights_min;
+                iss >> dummy >> lweights_min;
             } else {
                 return false;
             }
             if (std::getline(ifs, line)) {
                 std::istringstream iss(line);
-                iss >> dummy >> weights_max;
+                iss >> dummy >> lweights_max;
             } else {
                 return false;
             }
             if (std::getline(ifs, line)) {
                 std::istringstream iss(line);
-                iss >> dummy >> eta0;
+                iss >> dummy >> leta0;
             } else {
                 return false;
             }
             if (std::getline(ifs, line)) {
                 std::istringstream iss(line);
-                iss >> dummy >> delta_eta;
+                iss >> dummy >> ldelta_eta;
             } else {
                 return false;
             }
             if (std::getline(ifs, line)) {
                 std::istringstream iss(line);
-                iss >> dummy >> eta_halftime;
+                iss >> dummy >> leta_halftime;
             } else {
                 return false;
             }
             if (std::getline(ifs, line)) {
                 std::istringstream iss(line);
-                iss >> dummy >> step;
+                iss >> dummy >> lstep;
             } else {
                 return false;
             }
             if (std::getline(ifs, line)) {
                 std::istringstream iss(line);
-                iss >> dummy >> storing_period;
+                iss >> dummy >> lstoring_period;
             } else {
                 return false;
             }
             if (std::getline(ifs, line)) {
                 std::istringstream iss(line);
-                iss >> dummy >> batch_size;
+                iss >> dummy >> lbatch_size;
             } else {
                 return false;
             }
             ifs.close();
             this->act = Sig(act_mn, act_mx);
             this->act = DSig(act_mn, act_mx);
-            this->weights_min = weights_min;
-            this->weights_max = weights_max;
-            this->eta0 = eta0;
+            this->weights_min = lweights_min;
+            this->weights_max = lweights_max;
+            this->eta0 = leta0;
             this->eta = this->eta0;
-            this->delta_eta = delta_eta;
-            this->eta_halftime = eta_halftime;
-            this->step = step;
-            this->storing_period = storing_period;
-            this->batch_size = batch_size;
+            this->delta_eta = ldelta_eta;
+            this->eta_halftime = leta_halftime;
+            this->step = lstep;
+            this->storing_period = lstoring_period;
+            this->batch_size = lbatch_size;
+            this->batch_count = 0;
             loadHistory(p_filename + "-history.dat");
             std::ifstream ifsW(p_filename + "-weights.dat");
             if (ifsW.is_open()) {

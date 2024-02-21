@@ -515,17 +515,15 @@ main( ) {
 		UI
 		cbits = 31;
 
-		Brain ramp({cbits, 5, cbits},
-				eta0,
-				eta_halftime,
-				delta_eta,
-				act_min,
-				act_max,
-				weights_min,
-				weights_max,
-				seed,
-				storing_period,
-				32);
+		Brain ramp(
+			{cbits, 5, cbits},
+			eta0, eta_halftime, delta_eta,
+			act_min, act_max,
+			weights_min, weights_max,
+			seed,
+			storing_period,
+			32
+		);
 
 		MD pattern = mcnst(1000, cbits, 0.);
 		MD teacher = mcnst(1000, cbits, 0.);
@@ -569,6 +567,7 @@ main( ) {
 			unknowns = get_all_unknown_patterns_ids(ramp, pattern, teacher, epsilon);
 			random_shuffle(unknowns);
 		}
+
 		std::cout << "Finished. All patterns learned in " << loop << " loops." << std::endl;
 
 		print("ramp weights:", ramp.w);
@@ -599,7 +598,6 @@ main( ) {
 
 			std::cout << "Unknowns: " << unknowns.size() << std::endl;
 		}
-
 	}
     // print("ramp history:", ramp.m);
 //	D
@@ -626,5 +624,6 @@ main( ) {
 //			print("RMS: ", round(ramp.rms(), 5));
 //		}
 //	}
+
 	return 0;
 }
