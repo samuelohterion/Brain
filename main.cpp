@@ -73,6 +73,7 @@ main( ) {
 		srand( 3 );//time( nullptr ) );
 
 		Brain brain({2, 2, 2}, .5, 1e7, .75, 0., +1., -1., 1., 11, 0, 0);
+		brain.dact.flat_spot_elimination_offset = .1;
 
 		std::vector<std::vector<double> >
 		pattern = {{0, 0}, {0, 1}, {1, 0}, {1, 1}},
@@ -506,7 +507,8 @@ main( ) {
 
 		std::size_t
 		seed           = 1,
-		storing_period = 0;
+		storing_period = 0,
+		batch_size     = 0;
 
 		UI
 		cbits = 31;
@@ -518,8 +520,10 @@ main( ) {
 			weights_min, weights_max,
 			seed,
 			storing_period,
-			32
+			batch_size
 		);
+
+		ramp.setFlatSpotEliminationOffset(.001);
 
 		MD pattern = mcnst(1000, cbits, 0.);
 		MD teacher = mcnst(1000, cbits, 0.);
@@ -557,7 +561,7 @@ main( ) {
 
 				std::size_t j = unknowns[i];
 				ramp.remember(pattern[j]);
-				ramp.teach(teacher[j], .05, .001);
+				ramp.teach(teacher[j], .0, .0000000);
 			}
 
 			unknowns = get_all_unknown_patterns_ids(ramp, pattern, teacher, epsilon);

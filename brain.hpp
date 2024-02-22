@@ -76,17 +76,17 @@ class Brain {
             public:
         
                 double
-                mn, mx, dstRec;
+                mn, mx, dstRec, flat_spot_elimination_offset;
 
             public:
-                DSig(double const &p_min = 0., double const &p_max = 1.) :
+                DSig(double const &p_min = 0., double const &p_max = 1., double const & p_flat_spot_elimination_offset = .001) :
                 mn(p_min), mx(p_max), dstRec(1 / (mx - mn)) {
             }
 
             double
             operator()(double const &p_act) const {
                 // return (mx - p_act) * (p_act - mn) / (mx - mn);
-                return .001 + (mx - p_act) * (p_act - mn) * dstRec;
+                return flat_spot_elimination_offset + (mx - p_act) * (p_act - mn) * dstRec;
             }
         };
 
@@ -388,7 +388,7 @@ class Brain {
         }
 
         void
-        randomizeWeights(std::size_t const &p_seed = time(nullptr)) {
+        randomizeWeights(unsigned int const &p_seed = time(nullptr)) {
             std::srand(p_seed);
             for (auto &mat : w)
                 for (auto &vec : mat)
@@ -449,10 +449,17 @@ class Brain {
             return saveHistory(p_filename + "-history.dat") && saveWeights(p_filename + "-weights.dat");
         }
 
-        void
+        Brain &
         setBatchSize(std::size_t const &p_batchSize) {
             batch_size = p_batchSize;
             batch_count = 0;
+            return * this;
+        }
+
+        Brain &
+        setFlatSpotEliminationOffset(double const &p_flat_spot_elimination_offset) {
+            dact.flat_spot_elimination_offset = p_flat_spot_elimination_offset;
+            return * this;
         }
 
         template <typename T>
@@ -512,7 +519,7 @@ class Brain {
                 for (std::size_t i = 0; i < w[layer].size(); ++i) {
                     for (std::size_t j = 0; j < w[layer][i].size(); ++j) {
                         double
-                        d_w_tmp = e * ((1. - p_alpha) * d[layer][i] * o[layer][j] + p_alpha * (p_beta * w[layer][i][j] - d_w[layer][i][j]));
+                        d_w_tmp = e * ((1. - p_alpha) * d[layer][i] * o[layer][j] + p_alpha * d_w[layer][i][j]) - p_beta * w[layer][i][j];
                         d_w[layer][i][j] = d_w_tmp;
                         w[layer][i][j] += d_w_tmp;
                     }
@@ -554,7 +561,8 @@ class Brain {
                 for (std::size_t i = 0; i < w[layer].size(); ++i) {
                     for (std::size_t j = 0; j < w[layer][i].size(); ++j) {
                         double
-                        d_w_tmp = e * ((1. - p_alpha) * d[layer][i] * o[layer][j] + p_alpha * (p_beta * w[layer][i][j] - d_w[layer][i][j]));
+                        //d_w_tmp = e * ((1. - p_alpha) * d[layer][i] * o[layer][j] + p_alpha * (p_beta * w[layer][i][j] - d_w[layer][i][j]));
+                        d_w_tmp = e * ((1. - p_alpha) * d[layer][i] * o[layer][j] + p_alpha * d_w[layer][i][j]) - p_beta * w[layer][i][j];
                         d_w[layer][i][j] = d_w_tmp;
                         s_w[layer][i][j] += d_w_tmp;
                         if (batch_size <= batch_count) {
