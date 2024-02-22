@@ -420,6 +420,7 @@ main( ) {
 
 	std::cout << "Finished. All patterns learned in " << loop << " loops." << std::endl;
 */
+	
 	{
 		D
 		eta0         = .25,
@@ -434,13 +435,6 @@ main( ) {
 		std::size_t
 		seed           = 13,
 		storing_period = 0;
-	
-//	UI
-//   cbits = 31;
-
-//	Brain
-//    ramp({cbits, 5, cbits}, eta0, eta_halftime, delta_eta, act_min, act_max, weights_min, weights_max, seed, storing_period);
-//    ramp.setBatchSize(32);
 
 		MD
 		x_y    = {

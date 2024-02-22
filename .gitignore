@@ -54,4 +54,5 @@ compile_commands.json
 build/
 .vscode/*
 
+*.json
 *.dat
