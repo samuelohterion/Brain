@@ -488,10 +488,10 @@ main( ) {
 		srand(11);
 
 		UI
-		cbits = 31;
+		cbits = 131;
 
 		D    
-		eta0         = .01,
+		eta0         = .001,
 		eta_halftime = 1e7,
 		delta_eta    = .75,
 		weights_min  = -6./sqrt(2*cbits),
@@ -506,7 +506,7 @@ main( ) {
 		batch_size     = 0;
 
 		Brain ramp(
-			{cbits, 5, cbits},
+			{cbits, 8, cbits},
 			eta0, eta_halftime, delta_eta,
 			act_min, act_max,
 			weights_min, weights_max,
