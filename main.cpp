@@ -555,7 +555,7 @@ main( ) {
 
 				std::size_t j = unknowns[i];
 				ramp.remember(pattern[j]);
-				ramp.teach(teacher[j]);
+				ramp.teach(teacher[j], .1, .1);
 			}
 
 			unknowns = get_all_unknown_patterns_ids(ramp, pattern, teacher, epsilon);

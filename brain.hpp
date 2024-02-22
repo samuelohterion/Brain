@@ -429,7 +429,8 @@ class Brain {
             return alg::save(p_filename, w);
         }
 
-        bool saveMe(std::string const &p_filename) {
+        bool
+        saveMe(std::string const &p_filename) {
             std::ofstream ofs(p_filename + "-meta.dat");
             if (!ofs.is_open())
                 return false;
@@ -455,7 +456,8 @@ class Brain {
         }
 
         template <typename T>
-        std::string str(std::vector<T> const &p_vec, std::size_t p_len = 0) const {
+        std::string
+        str(std::vector<T> const &p_vec, std::size_t p_len = 0) const {
             std::size_t
             len = 0;
             typename std::vector<T>::const_iterator
@@ -484,7 +486,9 @@ class Brain {
         }
 
         void
-        teach(std::vector<double> const &p_teacher) {
+        teach(std::vector<double> const &p_teacher, double const & p_alpha = .0, double const & p_beta = 0.) {
+            // alpha = .1, // 25,   //0 ... 1
+            // beta = .0;  //.005 ... .030
             std::size_t
             layer = layer_sizes.size() - 2;
             for (std::size_t i = 0; i < d[layer].size(); ++i) {
@@ -501,17 +505,15 @@ class Brain {
                     d[layer][i] = dact(o[layer + 1][i]) * sum;
                 }
             }
-            eta = eta0 * pow(2., -double(step) / eta_halftime);
+            eta = eta0 * pow(2., -double(step) / eta_halftime);            
             double
-            e = eta,
-            alpha = .1, // 25,   //0 ... 1
-            beta = .0;  //.005 ... .030
+            e = eta;
             for (layer = 0; layer < w.size(); ++layer) {
                 for (std::size_t i = 0; i < w[layer].size(); ++i) {
                     for (std::size_t j = 0; j < w[layer][i].size(); ++j) {
                         double
                         wTmp = w[layer][i][j],
-                        d_w_tmp = e * ((1. - alpha) * d[layer][i] * o[layer][j] + alpha * (d_w[layer][i][j] - beta * wTmp));
+                        d_w_tmp = e * ((1. - p_alpha) * d[layer][i] * o[layer][j] + p_alpha * (d_w[layer][i][j] - p_beta * wTmp));
                         d_w[layer][i][j] = d_w_tmp;
                         w[layer][i][j] += d_w_tmp;
                     }
@@ -526,7 +528,9 @@ class Brain {
         }
 
         void
-        teach_batch(std::vector<double> const &p_teacher) {
+        teach_batch(std::vector<double> const &p_teacher, double const & p_alpha = .0, double const & p_beta = 0.) {
+            // alpha = .1, // 25,   //0 ... 1
+            // beta = .0;  //.005 ... .030
             ++batch_count;
             std::size_t
             layer = layer_sizes.size() - 2;
@@ -546,15 +550,13 @@ class Brain {
             }
             eta = eta0 * pow(2., -double(step) / eta_halftime);
             double
-            e = eta,
-            alpha = .1, // 25,   //0 ... 1
-            beta = .0;  //.005 ... .030
+            e = eta;
             for (layer = 0; layer < w.size(); ++layer) {
                 for (std::size_t i = 0; i < w[layer].size(); ++i) {
                     for (std::size_t j = 0; j < w[layer][i].size(); ++j) {
                         double
                         wTmp = w[layer][i][j],
-                        d_w_tmp = e * ((1. - alpha) * d[layer][i] * o[layer][j] + alpha * (d_w[layer][i][j] - beta * wTmp));
+                        d_w_tmp = e * ((1. - p_alpha) * d[layer][i] * o[layer][j] + p_alpha * (d_w[layer][i][j] - p_beta * wTmp));
                         d_w[layer][i][j] = d_w_tmp;
                         s_w[layer][i][j] += d_w_tmp;
                         if (batch_size <= batch_count) {
@@ -575,15 +577,18 @@ class Brain {
             ++step;
         }
 
-        std::vector<std::vector<double>> const &weights(std::size_t const &p_layer) const {
+        std::vector<std::vector<double>> const
+        &weights(std::size_t const &p_layer) const {
             return w[p_layer];
         }
 
-        std::vector<double> const &weights(std::size_t const &p_layer, std::size_t const &p_row) const {
+        std::vector<double> const
+        &weights(std::size_t const &p_layer, std::size_t const &p_row) const {
             return w[p_layer][p_row];
         }
 
     private:
+
         bool
         fromFileInputStream(std::ifstream &p_ifs) {
             if (!alg::load(p_ifs, w)) {                
