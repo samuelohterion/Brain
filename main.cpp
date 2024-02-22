@@ -492,6 +492,8 @@ main( ) {
 	}
  
 	{
+		srand(11);
+
 		D    
 		eta0         = .1,
 		eta_halftime = 1e7,
@@ -555,7 +557,7 @@ main( ) {
 
 				std::size_t j = unknowns[i];
 				ramp.remember(pattern[j]);
-				ramp.teach(teacher[j], .1, .1);
+				ramp.teach(teacher[j], .05, .001);
 			}
 
 			unknowns = get_all_unknown_patterns_ids(ramp, pattern, teacher, epsilon);

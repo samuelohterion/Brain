@@ -389,7 +389,7 @@ class Brain {
 
         void
         randomizeWeights(std::size_t const &p_seed = time(nullptr)) {
-            srand(p_seed);
+            std::srand(p_seed);
             for (auto &mat : w)
                 for (auto &vec : mat)
                     for (auto &val : vec)
@@ -512,8 +512,7 @@ class Brain {
                 for (std::size_t i = 0; i < w[layer].size(); ++i) {
                     for (std::size_t j = 0; j < w[layer][i].size(); ++j) {
                         double
-                        wTmp = w[layer][i][j],
-                        d_w_tmp = e * ((1. - p_alpha) * d[layer][i] * o[layer][j] + p_alpha * (d_w[layer][i][j] - p_beta * wTmp));
+                        d_w_tmp = e * ((1. - p_alpha) * d[layer][i] * o[layer][j] + p_alpha * (p_beta * w[layer][i][j] - d_w[layer][i][j]));
                         d_w[layer][i][j] = d_w_tmp;
                         w[layer][i][j] += d_w_tmp;
                     }
@@ -555,8 +554,7 @@ class Brain {
                 for (std::size_t i = 0; i < w[layer].size(); ++i) {
                     for (std::size_t j = 0; j < w[layer][i].size(); ++j) {
                         double
-                        wTmp = w[layer][i][j],
-                        d_w_tmp = e * ((1. - p_alpha) * d[layer][i] * o[layer][j] + p_alpha * (d_w[layer][i][j] - p_beta * wTmp));
+                        d_w_tmp = e * ((1. - p_alpha) * d[layer][i] * o[layer][j] + p_alpha * (p_beta * w[layer][i][j] - d_w[layer][i][j]));
                         d_w[layer][i][j] = d_w_tmp;
                         s_w[layer][i][j] += d_w_tmp;
                         if (batch_size <= batch_count) {
