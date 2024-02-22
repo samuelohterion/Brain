@@ -102,7 +102,7 @@ class Brain {
         dact;
 
         double
-        eta0, eta, eta_halftime, delta_eta, weights_min, weights_max;
+        eta0, eta, eta_halftime, delta_eta, weights_min, weights_max, adam_beta1, adam_beta2;
 
         std::size_t
         batch_size, batch_count,
@@ -116,25 +116,25 @@ class Brain {
 
         std::vector<std::vector<std::vector<double>>>
         w, // eights
-        d_w, s_w;
+        d_w, s_w,
+        adam_m, adam_v;
 
         std::vector<std::vector<std::vector<std::vector<double>>>>
         m; // emory
-
 
     public:
 
         Brain(
             std::initializer_list<std::size_t> const &p_layer_sizes,
-            double const &p_eta = .5,
-            double const &p_eta_halftime = 1000,
-            double const &p_delta_eta = .8,
+            double const &p_eta = .001,
+            double const &p_eta_halftime = 1e9,
+            double const &p_delta_eta = 1.,
             double const &p_activation_min = 0.,
             double const &p_activation_max = 1.,
             double const &p_weights_min = -1.,
             double const &p_weights_max = 1.,
-            std::size_t const &p_seed = time(nullptr),
-            std::size_t const &p_weights_to_history_storing_period = 0,
+            std::size_t const &p_seed = static_cast<std::size_t>(time(nullptr)),
+            std::size_t const &p_storing_period = 0,
             std::size_t const &p_batch_size = 0) :
         layer_sizes(p_layer_sizes.begin(), p_layer_sizes.end()),
         act(p_activation_min, p_activation_max), dact(p_activation_min, p_activation_max),
@@ -142,21 +142,21 @@ class Brain {
         weights_min(p_weights_min), weights_max(p_weights_max),
         batch_size(p_batch_size), batch_count(0),
         step(0),
-        storing_loop(0), storing_period(p_weights_to_history_storing_period) {
+        storing_loop(0), storing_period(p_storing_period) {
             configure(p_weights_min, p_weights_max, p_seed);
         }
 
         Brain(
             std::vector<std::size_t> const &p_layer_sizes,
-            double const &p_eta = .5,
-            double const &p_eta_halftime = 1000,
-            double const &p_delta_eta = .8,
+            double const &p_eta = .001,
+            double const &p_eta_halftime = 1e9,
+            double const &p_delta_eta = 1.,
             double const &p_activation_min = 0.,
             double const &p_activation_max = 1.,
             double const &p_weights_min = -1.,
             double const &p_weights_max = 1.,
-            std::size_t const &p_seed = time(nullptr),
-            std::size_t const &p_weights_to_history_storing_period = 0,
+            std::size_t const &p_seed = static_cast<std::size_t>(time(nullptr)),
+            std::size_t const &p_storing_period = 0,
             std::size_t const &p_batch_size = 0) :
         layer_sizes(p_layer_sizes.begin(), p_layer_sizes.end()),
         act(p_activation_min, p_activation_max), dact(p_activation_min, p_activation_max),
@@ -164,7 +164,7 @@ class Brain {
         weights_min(p_weights_min), weights_max(p_weights_max),
         batch_size(p_batch_size), batch_count(0),
         step(0),
-        storing_loop(0), storing_period(p_weights_to_history_storing_period) {
+        storing_loop(0), storing_period(p_storing_period) {
             configure(p_weights_min, p_weights_max, p_seed);
         }
 
@@ -231,8 +231,12 @@ class Brain {
                 w.push_back(std::vector<std::vector<double>>(realNumberOfNeuoronsInLayer, std::vector<double>(realNumberOfNeuoronsInPrevLayer)));
                 d_w.push_back(std::vector<std::vector<double>>(realNumberOfNeuoronsInLayer, std::vector<double>(realNumberOfNeuoronsInPrevLayer)));
                 s_w.push_back(std::vector<std::vector<double>>(realNumberOfNeuoronsInLayer, std::vector<double>(realNumberOfNeuoronsInPrevLayer)));
+                adam_m.push_back(std::vector<std::vector<double>>(realNumberOfNeuoronsInLayer, std::vector<double>(realNumberOfNeuoronsInPrevLayer)));
+                adam_v.push_back(std::vector<std::vector<double>>(realNumberOfNeuoronsInLayer, std::vector<double>(realNumberOfNeuoronsInPrevLayer)));
             }
             randomizeWeights(p_seed);
+            adam_beta1 = .9;
+            adam_beta2 = .999;
             return *this;
         }
 
@@ -493,9 +497,7 @@ class Brain {
         }
 
         void
-        teach(std::vector<double> const &p_teacher, double const & p_alpha = .0, double const & p_beta = 0.) {
-            // alpha = .1, // 25,   //0 ... 1
-            // beta = .0;  //.005 ... .030
+        teach(std::vector<double> const &p_teacher) {
             std::size_t
             layer = layer_sizes.size() - 2;
             for (std::size_t i = 0; i < d[layer].size(); ++i) {
@@ -514,14 +516,25 @@ class Brain {
             }
             eta = eta0 * pow(2., -double(step) / eta_halftime);            
             double
-            e = eta;
+            e = eta,
+            q1 = 1. - pow(1. - adam_beta1, step+1.),
+            q2 = 1. - pow(1. - adam_beta2, step+1.);
             for (layer = 0; layer < w.size(); ++layer) {
                 for (std::size_t i = 0; i < w[layer].size(); ++i) {
                     for (std::size_t j = 0; j < w[layer][i].size(); ++j) {
                         double
-                        d_w_tmp = e * ((1. - p_alpha) * d[layer][i] * o[layer][j] + p_alpha * d_w[layer][i][j]) - p_beta * w[layer][i][j];
-                        d_w[layer][i][j] = d_w_tmp;
+                        dLdW = - d[layer][i] * o[layer][j];
+                        
+                        adam_m[layer][i][j] = (adam_beta1 * adam_m[layer][i][j] + (1. - adam_beta1) * dLdW) / q1;
+                        adam_v[layer][i][j] = (adam_beta2 * adam_v[layer][i][j] + (1. - adam_beta2) * dLdW * dLdW) / q2;
+                        
+                        double
+                        d_w_tmp = - e * adam_m[layer][i][j] / (sqrt(adam_v[layer][i][j]) + 1.e-5);
+                        
+                        //d_w[layer][i][j] = d_w_tmp;
                         w[layer][i][j] += d_w_tmp;
+                    //    w[layer][i][j] -= e * dLdW;
+                        
                     }
                 }
                 e *= delta_eta;

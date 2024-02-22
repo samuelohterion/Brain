@@ -66,7 +66,7 @@ main( ) {
 //	std::cout << qs.add(1) << std::endl << qs.sum() << std::endl;
 //	std::cout << qs.add(-1) << std::endl << qs.sum() << std::endl;
 //	std::cout << qs.add(-1) << std::endl << qs.sum() << std::endl;
-
+/*
 	{
 	
 		// cout << "MLP\n---\n\n";
@@ -92,7 +92,7 @@ main( ) {
 			<< std::endl;
 		}
 	}
-
+*/
 /*
 	MD
 	x_y = mcnst< D >(64, 6),        // 64 x (3 + 3) bits: y = y2 y1 y0   x = x2 x1 x0
@@ -421,7 +421,7 @@ main( ) {
 
 	std::cout << "Finished. All patterns learned in " << loop << " loops." << std::endl;
 */
-	
+/*	
 	{
 		D
 		eta0         = .25,
@@ -474,15 +474,7 @@ main( ) {
 				std::size_t j = unknowns[i];
 
 				logic.remember(x_y[j]);
-	/*			double err1 = logic.error(x_op_y[j]);
-				std::cout << i << ": " << err1 << "  ";
-	*/
 				logic.teach(x_op_y[j]);
-	/*
-				logic.remember(x_y[j]);
-				double err2 = logic.error(x_op_y[j]);
-				std::cout << err2 << "  " << err1 - err2 << std::endl;
-	*/
 			}
 
 			unknowns = get_all_unknown_patterns_ids(logic, x_y, x_op_y, epsilon);
@@ -491,16 +483,19 @@ main( ) {
 
 		std::cout << "Finished. All patterns learned in " << loop << " loops." << std::endl << std::endl;
 	}
- 
+ */
 	{
 		srand(11);
 
+		UI
+		cbits = 31;
+
 		D    
-		eta0         = .1,
+		eta0         = .01,
 		eta_halftime = 1e7,
 		delta_eta    = .75,
-		weights_min  = -1.,
-		weights_max  = 1.,
+		weights_min  = -6./sqrt(2*cbits),
+		weights_max  = +6./sqrt(2*cbits),
 		act_min      = 0.,
 		act_max      = 1.,
 		epsilon      = .2;
@@ -509,9 +504,6 @@ main( ) {
 		seed           = 1,
 		storing_period = 0,
 		batch_size     = 0;
-
-		UI
-		cbits = 31;
 
 		Brain ramp(
 			{cbits, 5, cbits},
@@ -561,7 +553,7 @@ main( ) {
 
 				std::size_t j = unknowns[i];
 				ramp.remember(pattern[j]);
-				ramp.teach(teacher[j], .0, .0000000);
+				ramp.teach(teacher[j]);
 			}
 
 			unknowns = get_all_unknown_patterns_ids(ramp, pattern, teacher, epsilon);
