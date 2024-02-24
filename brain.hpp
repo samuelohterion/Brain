@@ -399,7 +399,6 @@ class Brain {
                     for (auto &val : vec)
                         val = weights_min + (weights_max - weights_min) * std::rand() / RAND_MAX;
             storing_loop = 0;
-            step = 0;
             m = {w};
         }
 
@@ -445,6 +444,8 @@ class Brain {
                 << "Eta:            " << eta0 << std::endl
                 << "Delta-Eta:      " << delta_eta << std::endl
                 << "Eta-Halftime:   " << eta_halftime << std::endl
+                << "Adam-Beta1:     " << adam_beta1 << std::endl
+                << "Adam-Beta2:     " << adam_beta2 << std::endl
                 << "Step:           " << step << std::endl
                 << "Storing-Period: " << storing_period << std::endl
                 << "Batch-Size:     " << batch_size << std::endl
@@ -454,8 +455,15 @@ class Brain {
         }
 
         Brain &
-        setBatchSize(std::size_t const &p_batchSize) {
+        start_batch_learning(std::size_t const &p_batchSize) {
             batch_size = p_batchSize;
+            batch_count = 0;
+            return * this;
+        }
+
+        Brain &
+        stop_batch_learning() {
+            batch_size = 0;
             batch_count = 0;
             return * this;
         }
@@ -519,31 +527,72 @@ class Brain {
             e = eta,
             q1 = 1. - pow(1. - adam_beta1, step+1.),
             q2 = 1. - pow(1. - adam_beta2, step+1.);
-            for (layer = 0; layer < w.size(); ++layer) {
-                for (std::size_t i = 0; i < w[layer].size(); ++i) {
-                    for (std::size_t j = 0; j < w[layer][i].size(); ++j) {
-                        double
-                        dLdW = - d[layer][i] * o[layer][j];
-                        
-                        adam_m[layer][i][j] = (adam_beta1 * adam_m[layer][i][j] + (1. - adam_beta1) * dLdW) / q1;
-                        adam_v[layer][i][j] = (adam_beta2 * adam_v[layer][i][j] + (1. - adam_beta2) * dLdW * dLdW) / q2;
-                        
-                        double
-                        d_w_tmp = - e * adam_m[layer][i][j] / (sqrt(adam_v[layer][i][j]) + 1.e-5);
-                        
-                        //d_w[layer][i][j] = d_w_tmp;
-                        w[layer][i][j] += d_w_tmp;
-                    //    w[layer][i][j] -= e * dLdW;
-                        
+            if(0 < batch_size) {
+                if(++ batch_count < batch_size) {
+                    for (layer = 0; layer < w.size(); ++layer) {
+                        for (std::size_t i = 0; i < w[layer].size(); ++i) {
+                            for (std::size_t j = 0; j < w[layer][i].size(); ++j) {
+                                double
+                                dLdW = - d[layer][i] * o[layer][j];
+                                
+                                adam_m[layer][i][j] = (adam_beta1 * adam_m[layer][i][j] + (1. - adam_beta1) * dLdW) / q1;
+                                adam_v[layer][i][j] = (adam_beta2 * adam_v[layer][i][j] + (1. - adam_beta2) * dLdW * dLdW) / q2;
+                                
+                                double
+                                d_w_tmp = - e * adam_m[layer][i][j] / (sqrt(adam_v[layer][i][j]) + 1.e-5);
+
+                                s_w[layer][i][j] += d_w_tmp;
+                            }
+                        }
+                        e *= delta_eta;
                     }
+                } else {
+                    for (layer = 0; layer < w.size(); ++layer) {
+                        for (std::size_t i = 0; i < w[layer].size(); ++i) {
+                            for (std::size_t j = 0; j < w[layer][i].size(); ++j) {
+                                double
+                                dLdW = - d[layer][i] * o[layer][j];
+                                
+                                adam_m[layer][i][j] = (adam_beta1 * adam_m[layer][i][j] + (1. - adam_beta1) * dLdW) / q1;
+                                adam_v[layer][i][j] = (adam_beta2 * adam_v[layer][i][j] + (1. - adam_beta2) * dLdW * dLdW) / q2;
+                                
+                                double
+                                d_w_tmp = - e * adam_m[layer][i][j] / (sqrt(adam_v[layer][i][j]) + 1.e-5);
+
+                                s_w[layer][i][j] += d_w_tmp;
+                                w[layer][i][j] += s_w[layer][i][j];
+                                s_w[layer][i][j] = 0.;
+                            }
+                        }
+                        e *= delta_eta;
+                    }
+                    ++ step;
+                    batch_count = 0;
                 }
-                e *= delta_eta;
+            } else {
+                for (layer = 0; layer < w.size(); ++layer) {
+                    for (std::size_t i = 0; i < w[layer].size(); ++i) {
+                        for (std::size_t j = 0; j < w[layer][i].size(); ++j) {
+                            double
+                            dLdW = - d[layer][i] * o[layer][j];
+                            
+                            adam_m[layer][i][j] = (adam_beta1 * adam_m[layer][i][j] + (1. - adam_beta1) * dLdW) / q1;
+                            adam_v[layer][i][j] = (adam_beta2 * adam_v[layer][i][j] + (1. - adam_beta2) * dLdW * dLdW) / q2;
+                            
+                            double
+                            d_w_tmp = - e * adam_m[layer][i][j] / (sqrt(adam_v[layer][i][j]) + 1.e-5);
+                            
+                            w[layer][i][j] += d_w_tmp; 
+                        }
+                    }
+                    e *= delta_eta;
+                }
+                ++ step;
             }
             if (storing_period && storing_period < ++storing_loop) {
                 storing_loop = 0;
                 m.push_back(w);
             }
-            ++step;
         }
 
         void
@@ -623,9 +672,18 @@ class Brain {
             for (std::size_t i = 0; i < layer_sizes.size() - 1; ++i) {
                 o.push_back(std::vector<double>(layer_sizes[i] + 1, 1.));
             }
-            o.push_back(std::vector<double>(layer_sizes[layer_sizes.size() - 1], 0.));
+            o.push_back(std::vector<double>(layer_sizes[layer_sizes.size() - 1], 1.));
             for (std::size_t i = 1; i < layer_sizes.size(); ++i) {
                 d.push_back(std::vector<double>(layer_sizes[i]));
+            }
+            for (std::size_t i = 0; i < layer_sizes.size() - 1; ++i) {
+                std::size_t
+                realNumberOfNeuoronsInLayer = layer_sizes[i + 1],
+                realNumberOfNeuoronsInPrevLayer = layer_sizes[i] + 1;
+                d_w.push_back(std::vector<std::vector<double>>(realNumberOfNeuoronsInLayer, std::vector<double>(realNumberOfNeuoronsInPrevLayer)));
+                s_w.push_back(std::vector<std::vector<double>>(realNumberOfNeuoronsInLayer, std::vector<double>(realNumberOfNeuoronsInPrevLayer)));
+                adam_m.push_back(std::vector<std::vector<double>>(realNumberOfNeuoronsInLayer, std::vector<double>(realNumberOfNeuoronsInPrevLayer)));
+                adam_v.push_back(std::vector<std::vector<double>>(realNumberOfNeuoronsInLayer, std::vector<double>(realNumberOfNeuoronsInPrevLayer)));
             }
             return true;
         }
@@ -643,7 +701,7 @@ class Brain {
             line;
 
             double
-            act_mn, act_mx, lweights_min, lweights_max, leta0, ldelta_eta, leta_halftime;
+            act_mn, act_mx, lweights_min, lweights_max, leta0, ldelta_eta, leta_halftime, ladam_beta1, ladam_beta2;
 
             std::size_t
             lstep, lstoring_period, lbatch_size;
@@ -695,6 +753,18 @@ class Brain {
             }
             if (std::getline(ifs, line)) {
                 std::istringstream iss(line);
+                iss >> dummy >> ladam_beta1;
+            } else {
+                return false;
+            }
+            if (std::getline(ifs, line)) {
+                std::istringstream iss(line);
+                iss >> dummy >> ladam_beta2;
+            } else {
+                return false;
+            }
+            if (std::getline(ifs, line)) {
+                std::istringstream iss(line);
                 iss >> dummy >> lstep;
             } else {
                 return false;
@@ -720,8 +790,11 @@ class Brain {
             this->eta = this->eta0;
             this->delta_eta = ldelta_eta;
             this->eta_halftime = leta_halftime;
+            this->adam_beta1 = ladam_beta1;
+            this->adam_beta2 = ladam_beta2;
             this->step = lstep;
             this->storing_period = lstoring_period;
+            this->storing_loop = 0;
             this->batch_size = lbatch_size;
             this->batch_count = 0;
             loadHistory(p_filename + "-history.dat");

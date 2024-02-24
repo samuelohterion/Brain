@@ -421,14 +421,14 @@ main( ) {
 
 	std::cout << "Finished. All patterns learned in " << loop << " loops." << std::endl;
 */
-/*	
+	
 	{
 		D
-		eta0         = .25,
+		eta0         = .001,
 		eta_halftime = 1e7,
 		delta_eta    = .99,
-		weights_min  = -1.,
-		weights_max  = 1.,
+		weights_min  = -.01,
+		weights_max  = +.01,
 		act_min      = 0.,
 		act_max      = 1.,
 		epsilon      = .2;
@@ -482,20 +482,50 @@ main( ) {
 		}
 
 		std::cout << "Finished. All patterns learned in " << loop << " loops." << std::endl << std::endl;
+
+
+
+		logic.randomizeWeights(1);
+		logic.start_batch_learning(4);
+		
+		unknowns = get_all_unknown_patterns_ids(logic, x_y, x_op_y);
+		std::random_shuffle(unknowns.begin(), unknowns.end());
+		loop = 0;
+
+		while(0 < unknowns.size() && ++ loop <= 1000000) {
+
+			if(loop % 100 == 0) {
+
+				std::cout << "Loop: " << loop <<  " and still " << unknowns.size() <<  " unknown. [eta: " << logic.eta << "]" <<  std::endl;
+			}
+
+			for(std::size_t i = 0; i < unknowns.size(); ++ i) {
+
+				std::size_t j = unknowns[i];
+
+				logic.remember(x_y[j]);
+				logic.teach(x_op_y[j]);
+			}
+
+			unknowns = get_all_unknown_patterns_ids(logic, x_y, x_op_y, epsilon);
+			std::random_shuffle(unknowns.begin(), unknowns.end());
+		}
+
+		std::cout << "Finished. All patterns learned in " << loop << " loops." << std::endl << std::endl;
 	}
- */
+
 	{
 		srand(11);
 
 		UI
-		cbits = 131;
+		cbits = 512;
 
 		D    
 		eta0         = .001,
 		eta_halftime = 1e7,
 		delta_eta    = .75,
-		weights_min  = -6./sqrt(2*cbits),
-		weights_max  = +6./sqrt(2*cbits),
+		weights_min  = -.6/sqrt(2*cbits),
+		weights_max  = +.6/sqrt(2*cbits),
 		act_min      = 0.,
 		act_max      = 1.,
 		epsilon      = .2;
@@ -506,7 +536,7 @@ main( ) {
 		batch_size     = 0;
 
 		Brain ramp(
-			{cbits, 8, cbits},
+			{cbits, 11, cbits},
 			eta0, eta_halftime, delta_eta,
 			act_min, act_max,
 			weights_min, weights_max,
@@ -563,6 +593,37 @@ main( ) {
 		std::cout << "Finished. All patterns learned in " << loop << " loops." << std::endl;
 
 		print("ramp weights:", ramp.w);
+/*
+
+		ramp.randomizeWeights(1);
+		ramp.start_batch_learning(32);
+		unknowns = get_all_unknown_patterns_ids(ramp, pattern, teacher, epsilon);
+		random_shuffle(unknowns);
+		
+		loop = 0;
+
+		while(0 < unknowns.size() && ++ loop <= 10000000) {
+
+			//adder.eta = eta * (exp10(-D(loop / 100000.)));
+
+			if(loop % 10 == 0) {
+
+				std::cout << "Loop: " << loop <<  " and still " << unknowns.size() <<  " unknown. [eta: " << ramp.eta << "] [step: " << ramp.step << "] [rms: " << ramp.rms() << "]" << std::endl;
+			}
+
+			for(std::size_t i = 0; i < unknowns.size(); ++ i) {
+
+				std::size_t j = unknowns[i];
+				ramp.remember(pattern[j]);
+				ramp.teach(teacher[j]);
+			}
+
+			unknowns = get_all_unknown_patterns_ids(ramp, pattern, teacher, epsilon);
+			random_shuffle(unknowns);
+		}
+
+		std::cout << "Finished. All patterns learned in " << loop << " loops." << std::endl;
+*/
 
 		std::cout << "Save Brain" << std::endl;
 		ramp.saveMe("ramp");
@@ -573,6 +634,42 @@ main( ) {
 
 		unknowns = get_all_unknown_patterns_ids(brain2, pattern, teacher, epsilon);
 		std::cout << "Unknowns: " << unknowns.size() << std::endl;
+
+
+
+		brain2.randomizeWeights(1);
+		brain2.start_batch_learning(32);
+		unknowns = get_all_unknown_patterns_ids(brain2, pattern, teacher, epsilon);
+		random_shuffle(unknowns);
+		
+		loop = 0;
+
+		while(0 < unknowns.size() && ++ loop <= 10000000) {
+
+			//adder.eta = eta * (exp10(-D(loop / 100000.)));
+
+			if(loop % 10 == 0) {
+
+				std::cout << "Loop: " << loop <<  " and still " << unknowns.size() <<  " unknown. [eta: " << brain2.eta << "] [step: " << brain2.step << "] [rms: " << brain2.rms() << "]" << std::endl;
+			}
+
+			for(std::size_t i = 0; i < pattern.size(); ++ i) {
+
+				brain2.remember(pattern[i]);
+				brain2.teach(teacher[i]);
+			}
+
+			unknowns = get_all_unknown_patterns_ids(brain2, pattern, teacher, epsilon);
+			random_shuffle(unknowns);
+		}
+
+		std::cout << "Finished. All patterns learned in " << loop << " loops." << std::endl;
+
+
+
+
+
+
 
 		std::cout << "Create Brain and load weights only" << std::endl;
 		Brain brain3(
