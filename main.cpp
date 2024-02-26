@@ -66,20 +66,19 @@ main( ) {
 //	std::cout << qs.add(1) << std::endl << qs.sum() << std::endl;
 //	std::cout << qs.add(-1) << std::endl << qs.sum() << std::endl;
 //	std::cout << qs.add(-1) << std::endl << qs.sum() << std::endl;
-/*
+
 	{
 	
 		// cout << "MLP\n---\n\n";
 		srand( 3 );//time( nullptr ) );
 
-		Brain brain({2, 2, 2}, .5, 1e7, .75, 0., +1., -1., 1., 11, 0, 0);
-		brain.dact.flat_spot_elimination_offset = .1;
-
+		Brain brain({2, 2, 1}, .001, 1e7, 1, 0., +1., -.01, +.01, 1, 0, 4);
+		
 		std::vector<std::vector<double> >
 		pattern = {{0, 0}, {0, 1}, {1, 0}, {1, 1}},
-		teacher = {{0, 0}, {1, 0}, {1, 0}, {0, 1}};
+		teacher = {{0}, {1}, {1}, {0}};
 
-		for (std::size_t i = 0; i < 10000; ++i) {
+		for (std::size_t i = 0; i < 100000; ++i) {
 			std::size_t j = rand() & 0x03;
 			brain.remember(pattern[j]);
 			brain.teach(teacher[j]);
@@ -88,11 +87,10 @@ main( ) {
 		for (std::size_t i = 0; i < 4; ++i) {
 			brain.remember(pattern[i]);
 			std::cout << brain.input(0) << " " << brain.input(1)
-			<< " => " << round(brain.output(0)) << " " << round(brain.output(1))
+			<< " => " << round(brain.output(0))
 			<< std::endl;
 		}
 	}
-*/
 /*
 	MD
 	x_y = mcnst< D >(64, 6),        // 64 x (3 + 3) bits: y = y2 y1 y0   x = x2 x1 x0
@@ -421,21 +419,22 @@ main( ) {
 
 	std::cout << "Finished. All patterns learned in " << loop << " loops." << std::endl;
 */
-	
+/*	
 	{
 		D
 		eta0         = .001,
 		eta_halftime = 1e7,
 		delta_eta    = .99,
-		weights_min  = -.01,
-		weights_max  = +.01,
+		weights_min  = 0.,
+		weights_max  = +.001,
 		act_min      = 0.,
 		act_max      = 1.,
 		epsilon      = .2;
 
 		std::size_t
 		seed           = 13,
-		storing_period = 0;
+		storing_period = 0,
+		batch_size   = 0;
 
 		MD
 		x_y    = {
@@ -455,7 +454,9 @@ main( ) {
 		print("x_op_y", x_op_y);
 
 		Brain
-		logic({2, 4, 16}, eta0, eta_halftime, delta_eta, act_min, act_max, weights_min, weights_max, seed, storing_period);
+		logic({2, 4, 16}, eta0, eta_halftime, delta_eta, act_min, act_max, weights_min, weights_max, seed, storing_period, batch_size);
+		logic.adam_beta1 = .9;
+		logic.adam_beta2 = .999;
 		//logic({2, 5, 5, 4}, .25, 10000., .99,  0., 1., -1., +1., 13, 0);
 
 		VU unknowns = get_all_unknown_patterns_ids(logic, x_y, x_op_y);
@@ -487,6 +488,7 @@ main( ) {
 
 		logic.randomizeWeights(1);
 		logic.start_batch_learning(4);
+		logic.step = 0;
 		
 		unknowns = get_all_unknown_patterns_ids(logic, x_y, x_op_y);
 		std::random_shuffle(unknowns.begin(), unknowns.end());
@@ -513,6 +515,7 @@ main( ) {
 
 		std::cout << "Finished. All patterns learned in " << loop << " loops." << std::endl << std::endl;
 	}
+*/
 
 	{
 		srand(11);
@@ -524,8 +527,8 @@ main( ) {
 		eta0         = .001,
 		eta_halftime = 1e7,
 		delta_eta    = .75,
-		weights_min  = -.6/sqrt(2*cbits),
-		weights_max  = +.6/sqrt(2*cbits),
+		weights_min  = -6./sqrt(2*cbits),
+		weights_max  = +6./sqrt(2*cbits),
 		act_min      = 0.,
 		act_max      = 1.,
 		epsilon      = .2;
@@ -664,12 +667,6 @@ main( ) {
 		}
 
 		std::cout << "Finished. All patterns learned in " << loop << " loops." << std::endl;
-
-
-
-
-
-
 
 		std::cout << "Create Brain and load weights only" << std::endl;
 		Brain brain3(
