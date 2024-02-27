@@ -525,8 +525,8 @@ class Brain {
             eta = eta0 * pow(2., -double(step) / eta_halftime);            
             double
             e = eta,
-            q1 = 1. / (1. - pow(1. - adam_beta1, step + 1.)),
-            q2 = 1. / (1. - pow(1. - adam_beta2, step + 1.));
+            q1 = 1.,// / (1. - pow(1. - adam_beta1, step + 1.)),
+            q2 = 1.;// / (1. - pow(1. - adam_beta2, step + 1.));
             if(0 < batch_size) {
                 if(++ batch_count < batch_size) {
                     for (layer = 0; layer < w.size(); ++layer) {
